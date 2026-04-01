@@ -1,0 +1,3856 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>그립 온사이트전략 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+/* ─────────────────────────── RESET & BASE ─────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size:19px; scroll-behavior: smooth; }
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #07070f;
+  color: #e2e8f0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ─────────────────────────── TOKENS ─────────────────────────── */
+:root {
+  --surface-0: #07070f;
+  --surface-1: #0f0f1c;
+  --surface-2: rgba(255,255,255,0.045);
+  --surface-3: rgba(255,255,255,0.075);
+  --border: rgba(255,255,255,0.07);
+  --border-hi: rgba(255,255,255,0.14);
+  --text-1: #f1f5f9;
+  --text-2: #94a3b8;
+  --text-3: #4b5563;
+  --r: #fb7185;  --r-bg: rgba(251,113,133,.12);
+  --g: #34d399;  --g-bg: rgba(52,211,153,.12);
+  --b: #60a5fa;  --b-bg: rgba(96,165,250,.12);
+  --v: #a78bfa;  --v-bg: rgba(167,139,250,.12);
+  --y: #fbbf24;  --y-bg: rgba(251,191,36,.12);
+  --c: #22d3ee;  --c-bg: rgba(34,211,238,.12);
+  --rad: 12px;
+}
+
+/* ─────────────────────────── BACKGROUND GLOW ─────────────────────────── */
+.bg-glow {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+}
+.bg-glow::before {
+  content: ''; position: absolute;
+  width: 800px; height: 800px; border-radius: 50%;
+  top: -200px; left: -200px;
+  background: radial-gradient(circle, rgba(124,58,237,.07) 0%, transparent 60%);
+}
+.bg-glow::after {
+  content: ''; position: absolute;
+  width: 600px; height: 600px; border-radius: 50%;
+  bottom: -150px; right: -100px;
+  background: radial-gradient(circle, rgba(6,182,212,.05) 0%, transparent 60%);
+}
+
+/* ─────────────────────────── HEADER ─────────────────────────── */
+header {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(7,7,15,.9);
+  backdrop-filter: blur(24px) saturate(160%);
+  border-bottom: 1px solid var(--border);
+}
+.header-inner {
+  max-width: 1440px; margin: 0 auto; padding: 0 28px;
+  height: 58px; display: flex; align-items: center; gap: 24px;
+}
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand-icon {
+  width: 30px; height: 30px; border-radius: 7px;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  display: flex; align-items: center; justify-content: center;
+  font-size:20px; flex-shrink: 0;
+}
+.brand-name { font-size:18.5px; font-weight: 700; color: var(--text-1); letter-spacing: -.3px; }
+.brand-sub  { font-size:15px; color: var(--text-3); }
+.header-nav { display: flex; gap: 2px; margin-left: auto; }
+.nav-btn {
+  font-size:12.5px; font-weight: 500; color: var(--text-3);
+  padding: 6px 13px; border-radius: 7px; cursor: pointer;
+  border: none; background: none; transition: all .18s;
+}
+.nav-btn:hover { color: var(--text-1); background: var(--surface-2); }
+.nav-btn.active { color: var(--text-1); background: var(--surface-3); }
+.header-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size:16px; color: var(--text-3);
+  padding: 4px 10px; border-radius: 20px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.status-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--g); animation: blink 2.2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── Section Pacing widget (next to page title) ── */
+.section-pacing {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px; border-radius: 10px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  font-size:16px; color: var(--text-2); white-space: nowrap;
+}
+.sp-label { font-weight: 700; color: var(--text-1); font-size:17px; }
+.sp-bar-outer {
+  width: 90px; height: 5px; border-radius: 3px;
+  background: rgba(255,255,255,.1); flex-shrink: 0;
+}
+.sp-bar-inner { height: 100%; border-radius: 3px; transition: width .4s ease; }
+.sp-pct { font-size:16px; font-weight: 700; }
+.sp-days { font-size:15px; color: var(--text-3); }
+
+/* ── KPI Pacing badge ── */
+.kpi-pacing {
+  margin-top: 7px; padding: 5px 9px; border-radius: 7px;
+  font-size:15px; display: flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,.04); border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.kpi-pacing .pace-label { color: var(--text-3); font-size:14.5px; }
+
+/* ── Monthly Achievement Box ── */
+.achieve-box {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  padding: 18px 20px; border-radius: 12px; margin-bottom: 16px;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.achieve-box-header {
+  grid-column: 1 / -1;
+  font-size:18px; font-weight:700; color:var(--text-1);
+  display:flex; align-items:center; gap:8px; margin-bottom:4px;
+}
+.achieve-item {
+  padding: 13px 16px; border-radius: 10px;
+  background: rgba(255,255,255,.03); border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.achieve-item-head {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.achieve-item-label { font-size:15px; font-weight:600; color:var(--text-2); }
+.achieve-item-pct   { font-size:20px; font-weight:800; }
+.achieve-bar-outer  { height:5px; border-radius:3px; background:rgba(255,255,255,.1); }
+.achieve-bar-inner  { height:100%; border-radius:3px; transition:width .4s ease; }
+.achieve-item-vals  { font-size:14px; color:var(--text-3); }
+.achieve-item-vals strong { color:var(--text-1); font-weight:600; }
+
+/* ── Rich insight block ── */
+.insight-block {
+  padding: 14px 16px; border-radius: 10px; margin: 8px 0 4px;
+  background: rgba(255,255,255,.03); border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 11px;
+}
+.insight-section { display: flex; flex-direction: column; gap: 5px; }
+.insight-title {
+  font-size:16.5px; font-weight: 600; color: var(--text-1);
+  display: flex; align-items: center; gap: 7px;
+}
+.insight-title .it-delta { font-size:15.5px; font-weight: 700; }
+.insight-detail {
+  font-size:15.5px; color: var(--text-3);
+  padding-left: 20px; display: flex; flex-direction: column; gap: 6px;
+}
+.insight-detail .iup { color: var(--g); font-weight: 600; }
+.insight-detail .idn { color: var(--r); font-weight: 600; }
+.insight-detail .ine { color: var(--text-2); }
+/* ── Strategic Insight Box ── */
+.strat-box {
+  margin-top:14px; padding:18px 22px;
+  background: linear-gradient(135deg,rgba(99,102,241,.1),rgba(124,58,237,.07));
+  border: 1.5px solid rgba(167,139,250,.3); border-radius:12px;
+  position:relative; overflow:hidden;
+}
+.strat-box::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg,#6366f1,#a78bfa);
+}
+.strat-box-title {
+  font-size:22px; font-weight:700; letter-spacing:-.4px;
+  color:#818cf8; margin-bottom:12px;
+}
+.strat-card-v {
+  padding:13px 16px; background:rgba(167,139,250,.08);
+  border:1px solid rgba(167,139,250,.2); border-radius:9px;
+}
+.strat-card-c {
+  padding:13px 16px; background:rgba(34,211,238,.07);
+  border:1px solid rgba(34,211,238,.18); border-radius:9px;
+}
+.strat-card-head {
+  font-size:16.5px; font-weight:700; margin-bottom:6px;
+  display:flex; align-items:center; gap:6px;
+}
+.strat-card-body { font-size:17px; color:var(--text-2); line-height:1.7; }
+.insight-divider-h {
+  height: 1px; background: var(--border); margin: 0;
+}
+
+/* ─────────────────────────── LAYOUT ─────────────────────────── */
+.container { max-width: 1440px; margin: 0 auto; padding: 0 28px 80px; position: relative; z-index: 1; }
+.page-head { padding: 36px 0 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+#tab-overview .page-head, #tab-banner .page-head { position: sticky; top: 58px; z-index: 180; background: rgba(7,7,15,.95); backdrop-filter: blur(20px); padding: 14px 0; margin: 0; border-bottom: 1px solid var(--border); }
+.page-title { font-size:27px; font-weight: 800; letter-spacing: -.5px; }
+.page-title em { color: #a78bfa; font-style: normal; }
+.page-sub { font-size:17px; color: var(--text-3); margin-top: 5px; }
+.tab-section { display: none; }
+.tab-section.active { display: block; }
+
+/* ─────────────────────────── GRID ─────────────────────────── */
+.g2  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.g3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.g4  { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.g2h { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+.g1h { display: grid; grid-template-columns: 1fr 2fr; gap: 14px; }
+.gap { height: 14px; }
+.gap-lg { height: 36px; }
+
+/* ─────────────────────────── CARD ─────────────────────────── */
+.card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--rad);
+  position: relative; overflow: hidden;
+  transition: border-color .2s, background .2s;
+}
+.card:hover { border-color: var(--border-hi); }
+.card-p { padding: 22px 24px; }
+.card-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 20px; gap: 12px;
+}
+.card-title { font-size:18.5px; font-weight: 700; color: var(--text-1); }
+.card-sub   { font-size:16px; color: var(--text-3); margin-top: 3px; line-height: 1.4; }
+.source-tag {
+  font-size:15px; color: var(--text-3); padding: 2px 7px; border-radius: 4px;
+  background: var(--surface-2); border: 1px solid var(--border); flex-shrink: 0;
+}
+
+/* ─────────────────────────── KPI CARD ─────────────────────────── */
+.kpi {
+  padding: 20px 22px;
+}
+.kpi::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 2px 2px 0 0;
+}
+.kpi.v::before { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+.kpi.g::before { background: linear-gradient(90deg, #059669, #34d399); }
+.kpi.b::before { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+.kpi.y::before { background: linear-gradient(90deg, #d97706, #fbbf24); }
+.kpi.r::before { background: linear-gradient(90deg, #dc2626, #fb7185); }
+.kpi.c::before { background: linear-gradient(90deg, #0891b2, #22d3ee); }
+.kpi-label {
+  font-size:15.5px; font-weight: 600; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--text-3); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 5px;
+}
+.kpi-main { display: flex; align-items: baseline; gap: 4px; margin-bottom: 10px; }
+.kpi-val { font-size:37px; font-weight: 800; letter-spacing: -1.2px; line-height: 1; }
+.kpi.v .kpi-val { color: var(--v); }
+.kpi.g .kpi-val { color: var(--g); }
+.kpi.b .kpi-val { color: var(--b); }
+.kpi.y .kpi-val { color: var(--y); }
+.kpi.r .kpi-val { color: var(--r); }
+.kpi.c .kpi-val { color: var(--c); }
+.kpi-unit { font-size:21px; font-weight: 600; opacity: .45; }
+.kpi-foot { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.tag {
+  font-size:15.5px; font-weight: 600; padding: 2px 7px; border-radius: 4px;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.tag-g { background: var(--g-bg); color: var(--g); }
+.tag-r { background: var(--r-bg); color: var(--r); }
+.tag-y { background: var(--y-bg); color: var(--y); }
+.tag-b { background: var(--b-bg); color: var(--b); }
+.tag-n { background: var(--surface-2); color: var(--text-3); }
+.kpi-foot-label { font-size:16px; color: var(--text-3); }
+
+/* ─────────────────────────── SECTION LABEL ─────────────────────────── */
+.sec-label {
+  font-size:15px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--text-3);
+  margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sec-label span { font-weight: 400; letter-spacing: 0; font-size:15px; }
+
+/* 서브타이틀형 섹션 레이블 */
+.sec-label-lg {
+  font-size:22px; font-weight: 700; letter-spacing: -.4px;
+  color: var(--text-1);
+  margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sec-label-lg .slg-sub {
+  font-size:16px; font-weight: 400; letter-spacing: 0;
+  color: var(--text-3); margin-left: 8px;
+}
+.sec-label-lg .slg-right {
+  font-size:16px; font-weight: 400; color: var(--text-3);
+}
+
+/* ─────────────────────────── CHIP ─────────────────────────── */
+.chips { display: flex; gap: 4px; }
+.chip {
+  font-size:15.5px; font-weight: 500; padding: 3px 9px;
+  border-radius: 20px; border: 1px solid var(--border);
+  cursor: pointer; color: var(--text-3); background: none;
+  transition: all .15s;
+}
+.chip:hover, .chip.on { color: var(--v); border-color: rgba(167,139,250,.4); background: var(--v-bg); }
+
+/* ─────────────────────────── CHART ─────────────────────────── */
+.chart-wrap { position: relative; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.leg-item {
+  display: flex; align-items: center; gap: 5px;
+  font-size:16px; color: var(--text-2); cursor: pointer;
+  transition: opacity .15s;
+}
+.leg-item.off { opacity: .35; }
+.leg-line { width: 18px; height: 2px; border-radius: 1px; }
+.leg-dot  { width: 7px; height: 7px; border-radius: 50%; }
+
+/* ─────────────────────────── TABLE ─────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  font-size:15px; font-weight: 600; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--text-3);
+  padding: 0 12px 10px 0; text-align: left;
+}
+.data-table td {
+  font-size:17.5px; color: var(--text-2); padding: 9px 12px 9px 0;
+  border-top: 1px solid var(--border); vertical-align: middle;
+}
+.data-table tr:hover td { color: var(--text-1); background: rgba(255,255,255,.015); }
+.data-table td.num { font-weight: 700; color: var(--text-1); font-variant-numeric: tabular-nums; }
+.bar-inline { height: 3px; border-radius: 2px; background: var(--border); margin-top: 5px; overflow: hidden; }
+.bar-fill   { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #7c3aed, #a78bfa); transition: width .5s; }
+
+/* ─────────────────────────── INSIGHT BOX ─────────────────────────── */
+.insight {
+  padding: 14px 16px;
+  background: rgba(124,58,237,.06); border: 1px solid rgba(124,58,237,.15);
+  border-radius: 8px; font-size:17px; line-height: 1.6; color: var(--text-2);
+  margin-top: 14px;
+}
+.insight strong { color: var(--v); }
+
+/* ─────────────────────────── WEEK BADGE ─────────────────────────── */
+.w-badge {
+  font-size:14.5px; font-weight: 700; padding: 2px 6px;
+  border-radius: 3px; text-transform: uppercase; letter-spacing: .4px;
+  background: var(--surface-3); color: var(--text-3); border: 1px solid var(--border);
+  display: inline-block; margin-bottom: 6px;
+}
+
+/* ─────────────────────────── KPI COMPARE TABLE ─────────────────────────── */
+.kpi-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-top: 1px solid var(--border);
+  gap: 8px;
+}
+.kpi-row:first-child { border-top: none; }
+.kpi-row-label { font-size:17px; color: var(--text-2); flex: 1; }
+.kpi-row-target { font-size:16px; color: var(--text-3); width: 60px; text-align: right; }
+.kpi-row-actual { font-size:18px; font-weight: 700; color: var(--text-1); width: 60px; text-align: right; }
+.kpi-row-diff   { font-size:16px; width: 55px; text-align: right; }
+.kpi-row-diff.pos { color: var(--g); }
+.kpi-row-diff.neg { color: var(--r); }
+
+/* ─────────────────────────── PROGRESS BAR ─────────────────────────── */
+.prog-wrap { margin-top: 6px; }
+.prog-bar  { height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; margin-top: 4px; }
+.prog-fill { height: 100%; border-radius: 2px; transition: width .6s; }
+.prog-label { display: flex; justify-content: space-between; font-size:15.5px; color: var(--text-3); }
+
+/* ─────────────────────────── TOOLTIP OVERRIDE ─────────────────────────── */
+/* chart.js uses canvas */
+
+/* ─────────────────────────── RESPONSIVE ─────────────────────────── */
+@media (max-width: 1100px) {
+  .g4 { grid-template-columns: 1fr 1fr; }
+  .g2h, .g1h { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .g4 { grid-template-columns: 1fr 1fr; }
+  .container { padding: 0 16px 60px; }
+  header { padding: 0 16px; }
+}
+
+/* ─────────────────────────── FILTER BAR ─────────────────────────── */
+.filter-bar {
+  position: sticky; top: 58px; z-index: 190;
+  background: rgba(7,7,15,.93);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.filter-inner {
+  max-width: 1440px; margin: 0 auto; padding: 0 28px;
+  height: 40px; display: flex; align-items: center; gap: 5px;
+}
+.filter-label {
+  font-size:15px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase;
+  color: var(--text-3); margin-right: 6px; white-space: nowrap;
+}
+.filter-btn {
+  font-size:16px; font-weight: 500; padding: 3px 10px;
+  border-radius: 20px; border: 1px solid var(--border);
+  cursor: pointer; color: var(--text-3); background: none;
+  transition: all .14s;
+}
+.filter-btn:hover { color: var(--text-1); border-color: var(--border-hi); }
+.filter-btn.on { color: var(--v); border-color: rgba(167,139,250,.45); background: var(--v-bg); font-weight: 600; }
+.filter-divider { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
+.filter-info { font-size:15.5px; color: var(--text-3); margin-left: auto; white-space: nowrap; }
+
+/* ─────────────────────────── LB SLOT SELECTOR ─────────────────────────── */
+.lb-slot-bar {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+  padding: 10px 16px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--rad);
+}
+.lb-slot-select {
+  background: rgba(255,255,255,.05); border: 1px solid var(--border-hi);
+  color: var(--text-1); border-radius: 8px; padding: 6px 28px 6px 12px;
+  font-size:17px; font-family: inherit; cursor: pointer; outline: none;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2364748b' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+  transition: border-color .15s;
+}
+.lb-slot-select:focus { border-color: rgba(167,139,250,.5); }
+.lb-slot-select option { background: #16162a; color: #e2e8f0; }
+.lb-slot-desc { font-size:16px; color: var(--text-2); }
+
+/* ─────────────────────────── INSIGHT FEED ─────────────────────────── */
+.feed-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--rad); margin-bottom: 14px; overflow: hidden; }
+.feed-card-head { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.feed-date-badge { font-size:16px; font-weight: 700; color: var(--v); background: var(--v-bg); padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.feed-type-weekly { font-size:15px; font-weight: 600; color: var(--g); background: var(--g-bg); padding: 2px 8px; border-radius: 10px; }
+.feed-type-daily  { font-size:15px; font-weight: 600; color: var(--b); background: var(--b-bg); padding: 2px 8px; border-radius: 10px; }
+.feed-ts { margin-left: auto; font-size:15.5px; color: var(--text-3); white-space: nowrap; }
+.feed-card-body { padding: 4px 0; }
+.feed-section { padding: 12px 18px; border-bottom: 1px solid var(--border); }
+.feed-section:last-child { border-bottom: none; }
+.feed-section-title { font-size:15px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+.feed-text { font-size:17.5px; color: var(--text-2); line-height: 1.75; }
+.feed-text strong { color: var(--text-1); font-weight: 600; }
+.feed-text em { color: var(--y); font-style: normal; }
+.feed-empty { text-align: center; padding: 80px 20px; color: var(--text-3); font-size:18px; line-height: 2; }
+.feed-update-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding: 9px 16px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--rad); font-size:16.5px; color: var(--text-2); }
+.lb-no-data-msg {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; color: var(--text-2); font-size:18px; gap: 6px;
+}
+
+/* ─────────────────────────── WEEKLY REPORT ─────────────────────────── */
+.feed-view-toggle { display: flex; gap: 6px; margin-bottom: 20px; }
+.feed-view-btn { font-size:17px; font-weight: 600; padding: 6px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-3); cursor: pointer; transition: all .15s; }
+.feed-view-btn:hover { color: var(--text-1); }
+.feed-view-btn.active { background: var(--v-bg); border-color: rgba(167,139,250,.4); color: var(--v); }
+.weekly-hero { background: linear-gradient(135deg,rgba(124,58,237,.12),rgba(99,102,241,.07)); border: 1px solid rgba(124,58,237,.25); border-radius: var(--rad); padding: 22px 26px; margin-bottom: 16px; }
+.weekly-hero-label { font-size:15px; font-weight: 700; letter-spacing: .8px; color: var(--v); text-transform: uppercase; margin-bottom: 7px; }
+.weekly-hero-title { font-size:27px; font-weight: 800; color: var(--text-1); letter-spacing: -.5px; margin-bottom: 4px; }
+.weekly-hero-range { font-size:17px; color: var(--text-3); }
+.weekly-stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
+@media(max-width:700px){ .weekly-stats-row { grid-template-columns: repeat(2,1fr); } }
+.weekly-stat { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.weekly-stat-label { font-size:15px; color: var(--text-3); margin-bottom: 6px; font-weight: 600; letter-spacing: .3px; }
+.weekly-stat-value { font-size:31px; font-weight: 800; line-height: 1; }
+.weekly-stat-sub { font-size:16px; color: var(--text-3); margin-top: 4px; }
+.weekly-section { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--rad); margin-bottom: 14px; overflow: hidden; }
+.weekly-section-head { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.weekly-section-title { font-size:17px; font-weight: 700; color: var(--text-1); }
+.weekly-section-count { font-size:15px; font-weight: 700; color: var(--text-3); background: var(--surface-3); padding: 2px 8px; border-radius: 10px; margin-left: auto; }
+.highlight-item { display: flex; align-items: flex-start; gap: 14px; padding: 13px 18px; border-bottom: 1px solid var(--border); }
+.highlight-item:last-child { border-bottom: none; }
+.hi-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.hi-content { flex: 1; min-width: 0; }
+.hi-title { font-size:18px; font-weight: 600; color: var(--text-1); margin-bottom: 4px; }
+.hi-desc { font-size:17px; color: var(--text-2); line-height: 1.7; }
+.hi-meta { display: flex; align-items: center; gap: 7px; margin-top: 6px; flex-wrap: wrap; }
+.hi-date { font-size:15.5px; color: var(--text-3); }
+.hi-tag { font-size:15px; font-weight: 600; padding: 2px 7px; border-radius: 8px; }
+.tag-done  { color: var(--g); background: var(--g-bg); }
+.tag-issue { color: var(--r); background: var(--r-bg); }
+.tag-test  { color: var(--b); background: var(--b-bg); }
+.tag-info  { color: var(--y); background: var(--y-bg); }
+.timeline-day { display: flex; align-items: flex-start; gap: 14px; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+.timeline-day:last-child { border-bottom: none; }
+.tl-date-col { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 54px; }
+.tl-date { font-size:16px; font-weight: 700; color: var(--v); background: var(--v-bg); padding: 3px 8px; border-radius: 8px; white-space: nowrap; }
+.tl-day-name { font-size:14.5px; color: var(--text-3); margin-top: 3px; }
+.tl-body { flex: 1; padding-top: 2px; }
+.tl-item { font-size:17.5px; color: var(--text-2); line-height: 1.65; padding-left: 13px; position: relative; margin-bottom: 3px; }
+.tl-item:last-child { margin-bottom: 0; }
+.tl-item::before { content: '·'; position: absolute; left: 0; color: var(--text-3); font-size:21px; line-height: 1.2; }
+.tl-item strong { color: var(--text-1); font-weight: 600; }
+.tl-empty { font-size:17px; color: var(--text-3); font-style: italic; padding-left: 13px; }
+
+
+/* ─────────────────────────── SCROLLBAR ─────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.15); }
+
+/* ─────────────────────────── FUNNEL STAGE CHART ─────────────────────────── */
+.funnel-wrap { display:flex; flex-direction:column; align-items:center; gap:0; padding:12px 24px 8px; }
+.funnel-bar-row { width:100%; display:flex; justify-content:center; }
+.funnel-bar {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  height:46px; border-radius:6px; transition:width .45s ease; cursor:default;
+  padding:0 14px; position:relative; flex-shrink:0;
+}
+.funnel-bar-label { font-size:17px; font-weight:700; }
+.funnel-bar-val   { font-size:15px; color:rgba(255,255,255,.65); }
+.funnel-drop-row  { display:flex; align-items:center; gap:10px; padding:5px 0; }
+.funnel-drop-line { flex:1; height:1px; background:rgba(255,255,255,.07); }
+.funnel-drop-text { font-size:15px; white-space:nowrap; display:flex; align-items:center; gap:5px; }
+
+/* Donut legend */
+.donut-legend { display:flex; flex-direction:column; gap:7px; padding:0 4px; }
+.donut-leg-row { display:flex; align-items:center; gap:8px; font-size:16px; }
+.donut-leg-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.donut-leg-pct { margin-left:auto; font-weight:700; font-size:17px; }
+
+/* ─────────────────────────── BANNER SUMMARY TABLE ─────────────────────────── */
+.bsm-section { padding-top: 28px; }
+.bsm-table { width: 100%; border-collapse: collapse; }
+.bsm-table th {
+  font-size:15px; font-weight: 600; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--text-3);
+  padding: 0 20px 10px 0; text-align: left; white-space: nowrap;
+}
+.bsm-table th:last-child { padding-right: 0; }
+.bsm-table td {
+  font-size:17.5px; color: var(--text-2);
+  padding: 11px 20px 11px 0;
+  border-top: 1px solid var(--border); vertical-align: middle;
+}
+.bsm-table td:last-child { padding-right: 0; }
+.bsm-table tr:hover td { color: var(--text-1); background: rgba(255,255,255,.018); }
+.bsm-name {
+  font-weight: 700; font-size:18px; color: var(--text-1);
+  display: flex; align-items: center; gap: 7px;
+}
+.bsm-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.bsm-sub { font-size:16px; color: var(--text-3); margin-top: 3px; padding-left: 15px; }
+.bsm-val { font-size:22px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.bsm-bar { height: 3px; border-radius: 2px; background: var(--border); margin-top: 6px; width: 100px; max-width: 100%; overflow: hidden; }
+.bsm-bar-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+.bsm-note { font-size:15.5px; color: var(--text-3); text-align: right; margin-top: 12px; line-height: 1.7; }
+@media (max-width: 700px) {
+  .bsm-bar { width: 60px; }
+  .bsm-table th, .bsm-table td { padding-right: 12px; }
+}
+
+/* ─────────────────────────── FADE ANIM ─────────────────────────── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.fade { animation: fadeUp .4s ease both; }
+.fade:nth-child(1){animation-delay:.04s}
+.fade:nth-child(2){animation-delay:.08s}
+.fade:nth-child(3){animation-delay:.12s}
+.fade:nth-child(4){animation-delay:.16s}
+.fade:nth-child(5){animation-delay:.20s}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="header-inner">
+    <a class="brand" href="#">
+      <div class="brand-icon">📊</div>
+      <div>
+        <div class="brand-name">그립 온사이트전략</div>
+        <div class="brand-sub">Live Commerce · On-Site Operations Dashboard</div>
+      </div>
+    </a>
+    <nav class="header-nav">
+      <button class="nav-btn active" data-tab="overview">종합 현황</button>
+      <button class="nav-btn" data-tab="banner">배너 상세</button>
+      <button class="nav-btn" data-tab="live">라이브배너</button>
+      <button class="nav-btn" data-tab="cheat">⚡ 운영 치트키</button>
+      <button class="nav-btn" data-tab="feed">📝 인사이트 피드</button>
+    </nav>
+  </div>
+</header>
+
+
+<div class="container">
+
+<!-- ════════════════════════════════════════════════
+     TAB 1: 종합 현황
+════════════════════════════════════════════════ -->
+<div class="tab-section active" id="tab-overview">
+  <div class="page-head">
+    <div class="page-head-left">
+      <h1 class="page-title">온사이트 운영 <em>종합 현황</em></h1>
+      <p class="page-sub">월간 온사이트 퍼널 컨디션 체크</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <select id="monthly-snap-select" onchange="buildMonthlySnapshot()" class="lb-slot-select" style="font-size:15px;padding:3px 22px 3px 9px">
+        <option value="1">26년 1월</option>
+        <option value="2">26년 2월</option>
+        <option value="3" selected>26년 3월</option>
+        <option value="4">26년 4월</option>
+        <option value="5">26년 5월</option>
+        <option value="6">26년 6월</option>
+      </select>
+      <div id="section-pacing" class="section-pacing" style="display:none">
+        <span class="sp-label" id="sp-label-text"></span>
+        <div class="sp-bar-outer"><div class="sp-bar-inner" id="sp-bar-inner" style="width:0%"></div></div>
+        <span class="sp-pct" id="sp-pct-text"></span>
+        <span class="sp-days" id="sp-days-text"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 월간 달성률 박스 (JS 동적 생성 — 목표 설정 월만 표시) -->
+  <div id="monthly-achieve-box"></div>
+
+  <!-- Monthly Insight Box (JS 동적 생성 — 월 선택 연동) -->
+  <div id="monthly-insight-box" style="margin-bottom:44px"></div>
+
+  <!-- 이번 달 현황 (3박스) -->
+  <div class="sec-label-lg">
+    <span>온사이트 월간 현황</span>
+  </div>
+  <div class="g3" id="monthly-snap-grid"></div>
+  <div id="achieve-notice-wrap"></div>
+
+  <div id="onsite-detail-wrap" style="margin-top:44px"></div>
+
+  <!-- ── Strategic Insight Box ── -->
+  <div class="strat-box">
+    <div class="strat-box-title">구좌 성과 인사이트</div>
+    <div class="g2">
+      <div class="strat-card-v">
+        <div class="strat-card-head" style="color:var(--v)">🟢 팔로잉 핵심 구좌</div>
+        <div class="strat-card-body">
+          <strong style="color:var(--text-1)">톱배너 이벤트</strong>가 3월 총 팔로우의 <strong style="color:var(--v)">71%</strong>를 견인 (1,711 / 2,411명).<br>
+          이벤트성 편성 집중도가 팔로우 볼륨을 결정하는 핵심 레버임을 확인.
+        </div>
+      </div>
+      <div class="strat-card-c">
+        <div class="strat-card-head" style="color:var(--c)">🟢 유효시청 핵심 구좌</div>
+        <div class="strat-card-body">
+          <strong style="color:var(--text-1)">2번 라이브 배너</strong>가 시청 볼륨 주도 (14,973회 · 방송 161건).<br>
+          방송당 평균 93회로 전월 대비 상승, 라이브배너 운영 효율의 핵심 구좌.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gap-lg"></div>
+
+  <!-- 퍼널 지표 월간 추이 -->
+  <div class="sec-label-lg">
+    <span>퍼널 지표</span>
+  </div>
+  <div class="card" style="padding:20px 24px 12px">
+    <div style="position:relative;height:300px">
+      <canvas id="c-funnelBar"></canvas>
+    </div>
+  </div>
+
+</div>
+<!-- END TAB 1 -->
+
+
+<!-- ════════════════════════════════════════════════
+     TAB 2: 배너 상세
+════════════════════════════════════════════════ -->
+<div class="tab-section" id="tab-banner">
+  <div class="page-head">
+    <div class="page-head-left">
+      <h1 class="page-title">지면별 효율 <em>모니터링</em></h1>
+      <p class="page-sub">구좌별 팔로우 · CTR 현황 &nbsp;|&nbsp; 프로모션탭 · 톱배너 · 라이브배너 · 특수배너</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <select id="banner-month-select" onchange="buildBannerDetail()" class="lb-slot-select" style="font-size:15px;padding:3px 22px 3px 9px">
+        <option value="1">26년 1월</option>
+        <option value="2">26년 2월</option>
+        <option value="3" selected>26년 3월</option>
+      </select>
+      <div id="banner-section-pacing" class="section-pacing" style="display:none">
+        <span class="sp-label" id="bsp-label"></span>
+        <div class="sp-bar-outer"><div class="sp-bar-inner" id="bsp-bar" style="width:0%"></div></div>
+        <span class="sp-pct" id="bsp-pct"></span>
+        <span class="sp-days" id="bsp-days"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="banner-detail-wrap"></div>
+
+
+</div>
+<!-- END TAB 2 -->
+
+
+<!-- ════════════════════════════════════════════════
+     TAB 3: 라이브배너
+════════════════════════════════════════════════ -->
+<div class="tab-section" id="tab-live">
+  <div class="page-head">
+    <h1 class="page-title">라이브배너 <em>RAW 분석</em></h1>
+    <p class="page-sub">방송별 CTR · 방송 수 · 월별 성과 &nbsp;|&nbsp; 소스: 라이브배너 RAW (11/1 ~ 3/12)</p>
+  </div>
+
+  <!-- 구좌 선택 -->
+  <div class="lb-slot-bar">
+    <span class="filter-label">구좌 선택</span>
+    <select class="lb-slot-select" id="lb-slot-select" onchange="setLBSlot(this.value)">
+      <option value="all">전체 집계</option>
+      <option value="2">2번 구좌 (메인)</option>
+      <option value="3">3번 구좌</option>
+      <option value="4">4번 구좌</option>
+      <option value="5">5번 구좌</option>
+      <option value="6">6번 구좌</option>
+      <option value="7">7번 구좌</option>
+      <option value="9">9번 구좌</option>
+    </select>
+    <span class="lb-slot-desc" id="lb-slot-desc">전체 집계 기준</span>
+  </div>
+
+  <!-- 월별 요약 -->
+  <div class="sec-label">월별 라이브배너 CTR 요약</div>
+  <div class="g4" style="margin-bottom:28px">
+    <div class="card kpi g fade">
+      <div class="kpi-label">11월 방송별 평균 CTR</div>
+      <div class="kpi-main"><span class="kpi-val">4.92</span><span class="kpi-unit">%</span></div>
+      <div class="kpi-foot"><span class="tag tag-n">방송 1,185건</span></div>
+    </div>
+    <div class="card kpi b fade">
+      <div class="kpi-label">12월 방송별 평균 CTR</div>
+      <div class="kpi-main"><span class="kpi-val">5.08</span><span class="kpi-unit">%</span></div>
+      <div class="kpi-foot"><span class="tag tag-g">▲ MoM +0.16%p</span></div>
+    </div>
+    <div class="card kpi y fade">
+      <div class="kpi-label">1월 방송별 평균 CTR</div>
+      <div class="kpi-main"><span class="kpi-val">6.11</span><span class="kpi-unit">%</span></div>
+      <div class="kpi-foot"><span class="tag tag-g">▲ MoM +1.03%p</span></div>
+    </div>
+    <div class="card kpi r fade">
+      <div class="kpi-label">2~3월 방송별 평균 CTR</div>
+      <div class="kpi-main"><span class="kpi-val">2.63</span><span class="kpi-unit">%</span></div>
+      <div class="kpi-foot"><span class="tag tag-r">▼ MoM 급락</span></div>
+    </div>
+  </div>
+
+  <div class="sec-label">방송별 CTR + 방송 수 주간 추이 <span>소스: 라이브배너 RAW 집계</span></div>
+  <div class="card card-p fade">
+    <div class="card-head">
+      <div>
+        <div class="card-title">라이브배너 주간 평균 CTR & 방송 수</div>
+        <div class="card-sub">왼쪽 축: 방송별 평균 CTR (%) &nbsp;|&nbsp; 오른쪽 축: 주간 방송 건수</div>
+      </div>
+    </div>
+    <div class="chart-wrap" style="height:300px">
+      <canvas id="c-liveDual"></canvas>
+    </div>
+    <div class="insight" id="lb-insight">
+      <strong>2월 CTR 급락 주목</strong> — 1월 말(1/26주) 9.24%에서 2/9주 1.92%로 급락. 방송 수(296→224건)보다 CTR 낙폭이 크므로,
+      배너 내 콘텐츠 구성 변화나 이벤트 종료 효과로 분석됨. <strong>3월은 2.3% 수준 유지</strong> 중.
+    </div>
+  </div>
+
+  <div class="gap"></div>
+
+  <div class="g2">
+    <!-- 월별 분포 차트 -->
+    <div class="card card-p fade">
+      <div class="card-head">
+        <div>
+          <div class="card-title">월별 라이브배너 CTR 분포</div>
+          <div class="card-sub">월 평균 방송별 CTR · 11월~3월</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="c-liveMonth"></canvas>
+      </div>
+    </div>
+
+    <!-- 방송 유형별 -->
+    <div class="card card-p fade">
+      <div class="card-head">
+        <div>
+          <div class="card-title">주간 방송 수 추이</div>
+          <div class="card-sub">운영/일반 전체 라이브배너 방송 건수</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="c-liveCount"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- END TAB 3 -->
+
+
+<!-- ════════════════════════════════════════════════
+     TAB 4: 퍼널 / KPI
+════════════════════════════════════════════════ -->
+<div class="tab-section" id="tab-funnel">
+  <div class="page-head">
+    <h1 class="page-title">퍼널 지표 &amp; <em>KPI 달성 현황</em></h1>
+    <p class="page-sub">시청전환 · 구매전환 · 프로모션 기여도 · KPI 목표 대비 실적 &nbsp;|&nbsp; 소스: 1-0.주간지표 · 26년_KPI</p>
+  </div>
+
+  <!-- 퍼널 KPI 카드 -->
+  <div class="sec-label">퍼널 지표 현황 <span>12/29주 기준</span></div>
+  <div class="g4" style="margin-bottom:28px">
+    <div class="card kpi b fade">
+      <div class="kpi-label">시청전환 (최근주)</div>
+      <div class="kpi-main"><span class="kpi-val">37.06</span><span class="kpi-unit">%</span></div>
+      <div class="kpi-foot">
+        <span class="tag tag-r">목표 40.99% 미달</span>
+        <span class="kpi-foot-label">-3.93%p</span>
+      </div>
+    </div>
+    <div class="card kpi y fade">
+      <div class="kpi-label">구매전환 (최근주)</div>
+      <div class="kpi-main"><span class="kpi-val">6.36</span><span class="kpi-unit">%</span></div>
+      <div class="kpi-foot">
+        <span class="tag tag-r">목표 8.45% 미달</span>
+        <span class="kpi-foot-label">-2.09%p</span>
+      </div>
+    </div>
+    <div class="card kpi v fade">
+      <div class="kpi-label">11월 프로모션 기여도</div>
+      <div class="kpi-main"><span class="kpi-val">32.34</span><span class="kpi-unit">%</span></div>
+      <div class="kpi-foot">
+        <span class="tag tag-n">목표 34.88%</span>
+      </div>
+    </div>
+    <div class="card kpi g fade">
+      <div class="kpi-label">12월 프로모션 기여도</div>
+      <div class="kpi-main"><span class="kpi-val">39.77</span><span class="kpi-unit">%</span></div>
+      <div class="kpi-foot">
+        <span class="tag tag-g">목표 34.88% 초과</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 퍼널 트렌드 차트 -->
+  <div class="sec-label">퍼널 지표 주간 트렌드 <span>소스: 1-0.주간지표</span></div>
+  <div class="card card-p fade">
+    <div class="card-head">
+      <div>
+        <div class="card-title">시청전환 · 구매전환 주간 추이</div>
+        <div class="card-sub">목표 라인 포함 &nbsp;|&nbsp; 10/6주 ~ 12/29주</div>
+      </div>
+    </div>
+    <div class="chart-wrap" style="height:280px">
+      <canvas id="c-funnelTrend"></canvas>
+    </div>
+    <div class="chart-legend" id="leg-funnel"></div>
+  </div>
+
+  <div class="gap"></div>
+
+  <div class="g2">
+    <!-- 프로모션 기여도 -->
+    <div class="card card-p fade">
+      <div class="card-head">
+        <div>
+          <div class="card-title">프로모션 기여도 주간 추이</div>
+          <div class="card-sub">목표 34.88%</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="c-promoContrib"></canvas>
+      </div>
+    </div>
+
+    <!-- KPI 달성률 -->
+    <div class="card card-p fade">
+      <div class="card-title" style="margin-bottom:16px">KPI 달성 현황 (26년 1분기)</div>
+      <div id="kpiAchievements"></div>
+    </div>
+  </div>
+
+  <div class="gap"></div>
+
+  <!-- KPI 목표 vs 실적 테이블 -->
+  <div class="sec-label">월별 KPI 목표 vs 실적 <span>소스: 26년_KPI + 1-0.주간지표</span></div>
+  <div class="card card-p fade">
+    <div style="overflow-x:auto">
+    <table class="data-table" style="min-width:900px">
+      <thead>
+        <tr>
+          <th>지표</th>
+          <th>11월 목표</th><th>11월 실적</th>
+          <th>12월 목표</th><th>12월 실적</th>
+          <th>1월 목표</th><th>1월 실적</th>
+          <th>2월 목표</th><th>2월 실적</th>
+          <th>3월 목표</th><th>3월 실적 <small style="font-weight:400;color:var(--text-2)">(3주)</small></th>
+          <th>트렌드</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>홈ATF 배너 CTR</td>
+          <td>2.04%</td><td class="num">2.07%</td>
+          <td>2.04%</td><td class="num">2.58%</td>
+          <td>2.54%</td><td class="num" style="color:var(--g)">4.46%</td>
+          <td>2.60%</td><td class="num" style="color:var(--g)">3.98%</td>
+          <td>2.60%</td><td class="num" style="color:var(--g)">5.68%</td>
+          <td><span class="tag tag-g">상승 추세</span></td>
+        </tr>
+        <tr>
+          <td>톱배너(1번) CTR</td>
+          <td>2.04%</td><td class="num" style="color:var(--g)">3.82%</td>
+          <td>2.04%</td><td class="num" style="color:var(--g)">4.28%</td>
+          <td>2.54%</td><td class="num">2.23%</td>
+          <td>2.60%</td><td class="num">2.02%</td>
+          <td>2.60%</td><td class="num">2.58%</td>
+          <td><span class="tag tag-y">변동</span></td>
+        </tr>
+        <tr>
+          <td>라이브배너 CTR</td>
+          <td>2.04%</td><td class="num" style="color:var(--g)">3.66%</td>
+          <td>2.04%</td><td class="num" style="color:var(--g)">3.91%</td>
+          <td>2.54%</td><td class="num" style="color:var(--g)">4.69%</td>
+          <td>2.60%</td><td class="num" style="color:var(--g)">4.88%</td>
+          <td>2.60%</td><td class="num" style="color:var(--g)">5.12%</td>
+          <td><span class="tag tag-g">초과달성</span></td>
+        </tr>
+        <tr>
+          <td>시청전환율</td>
+          <td>40.04%</td><td class="num">40.38%</td>
+          <td>40.04%</td><td class="num">38.96%</td>
+          <td>40.99%</td><td class="num" style="color:var(--r)">37.86%</td>
+          <td>41.60%</td><td class="num" style="color:var(--r)">36.12%</td>
+          <td>41.60%</td><td class="num" style="color:var(--r)">39.52%</td>
+          <td><span class="tag tag-r">하락 추세</span></td>
+        </tr>
+        <tr>
+          <td>구매전환율</td>
+          <td>8.21%</td><td class="num" style="color:var(--g)">8.73%</td>
+          <td>8.21%</td><td class="num">8.01%</td>
+          <td>8.86%</td><td class="num" style="color:var(--r)">7.85%</td>
+          <td>8.99%</td><td class="num" style="color:var(--r)">6.47%</td>
+          <td>8.99%</td><td class="num" style="color:var(--r)">7.86%</td>
+          <td><span class="tag tag-r">하락 추세</span></td>
+        </tr>
+        <tr>
+          <td>프로모션 기여도</td>
+          <td>34.88%</td><td class="num">32.34%</td>
+          <td>34.88%</td><td class="num" style="color:var(--g)">39.77%</td>
+          <td>34.88%</td><td class="num" style="color:var(--r)">28.61%</td>
+          <td>–</td><td class="num" style="color:var(--text-2)">미수집</td>
+          <td>–</td><td class="num" style="color:var(--text-2)">미수집</td>
+          <td><span class="tag tag-y">미수집</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+<!-- END TAB 4 -->
+
+
+<!-- ═══════════════════════════════════════════════
+  TAB 5 — 인사이트 피드
+════════════════════════════════════════════════ -->
+<div class="tab-section" id="tab-cheat">
+  <div class="page-head">
+    <div class="page-head-left">
+      <h1 class="page-title">운영 <em>치트키</em></h1>
+      <p class="page-sub">성과 내는 패턴 모음 — MD·디자이너 셀프 판단 가이드 · 1~3월 누계 기반</p>
+    </div>
+  </div>
+  <div id="cheat-wrap"></div>
+</div>
+
+<div class="tab-section" id="tab-feed">
+  <div class="page-head">
+    <h2 class="page-title">인사이트 피드</h2>
+    <p class="page-sub">Slack #team-온사이트전략팀 · 데일리 인사이트 자동 수집 (매일 18:00 업데이트)</p>
+  </div>
+  <div class="feed-update-bar">
+    <span style="color:var(--g)">●</span>
+    마지막 업데이트: <span id="feed-updated-at">–</span>
+    <span style="margin-left:auto;color:var(--text-3)">매일 18:00 자동 갱신</span>
+  </div>
+  <div class="feed-view-toggle">
+    <button class="feed-view-btn active" onclick="setFeedView('weekly',this)">위클리 리포트</button>
+    <button class="feed-view-btn" onclick="setFeedView('daily',this)">데일리 피드</button>
+  </div>
+  <div id="weekly-container"></div>
+  <div id="feed-container" style="display:none"></div>
+</div>
+<!-- END TAB 6 -->
+
+</div><!-- /container -->
+
+<script>
+// ════════════════════════════════════════════════
+//   SLACK FEED (Cron이 매일 18:00 업데이트)
+// ════════════════════════════════════════════════
+// [SLACK_FEED_START]
+const SLACK_FEED = [];
+// [SLACK_FEED_END]
+
+// [WEEKLY_INSIGHTS_START]
+const WEEKLY_INSIGHTS = [
+  {
+    week: '3월 3주차',
+    range: '2026.03.16 ~ 2026.03.22',
+    highlights: [
+      {
+        type: 'issue',
+        title: '사후 배너 소재 피로도 확인 → 교체 주기 기준화 필요',
+        desc: '슈퍼위크 사후 배너 CTR이 2.20% → 1.09%로 급락한 뒤, 소재를 선착순시크릿으로 교체하자 CTR과 주문이 함께 회복됐다. 동일 소재 3일 이상 운영 시 반응 소진 패턴이 반복되고 있음. 사후 배너 소재 교체 주기를 2일 이내로 기준화하는 운영 가이드 수립 검토 필요.',
+        date: '3/16~3/22',
+        tags: ['톱배너', '소재운영', '액션필요'],
+      },
+      {
+        type: 'issue',
+        title: '위클리스페셜라이브 다수 배너 분산 편성 → 반복적 저효율 패턴',
+        desc: '3/19 예수진화장품연구소를 4개 배너로 분산 편성한 결과 CTR 0.35~0.89%, 팔로우 0~2명으로 저효율. 전주에도 동일 셀러의 다수 배너 편성에서 CTR 1% 미만 패턴 반복 확인. 위클리스페셜라이브의 배너 수 축소 및 소구 포인트 집중 재설계가 필요하다.',
+        date: '3/19 (목)',
+        tags: ['톱배너', '편성전략', '액션필요'],
+      },
+      {
+        type: 'info',
+        title: '단일 고효율 이벤트 부재가 주간 평균 CTR을 결정',
+        desc: '2주차: 마녀생일절 CTR 5.12%가 주간 평균을 견인. 3주차: 이에 준하는 앵커 이벤트가 없어 주간 일평균 CTR 2.65%, 전주(2.92%) 대비 -9.2% 하락. 마녀생일절 제외 시 평일 CTR은 비슷한 수준으로, 주간 성과 차이는 앵커 이벤트 1건의 유무로 만들어지고 있다.',
+        date: '3월 3주차',
+        tags: ['톱배너', '주간분석'],
+      },
+      {
+        type: 'test',
+        title: '배너 수 절반 줄였어도 팔로우 총량 유지 → 소재 효율 중심 운영 유효',
+        desc: '3월 배너 수는 2월 대비 절반 수준으로 감소했으나, 총 팔로우는 239명 → 236명으로 거의 동일하게 유지됐다. 배너별 팔로우 효율이 상대적으로 높아진 결과로, 배너 수 확대보다 고효율 소재 선택과 배치 집중 운영이 팔로우 성과에 더 효과적임을 시사한다.',
+        date: '3월 슈퍼위크',
+        tags: ['톱배너', '팔로우', '효율분석'],
+      },
+      {
+        type: 'done',
+        title: '지혜로운일상, CTR·구매전환·GMV 전 지표 주간 최고 성과 달성',
+        desc: '슈퍼그리퍼 중 지혜로운일상이 LB_2 기준 CTR 9.42%로 가장 높은 성과를 기록하며 구매전환율과 GMV 전 지표에서도 주간 최고를 달성. 팔로우 관점에서는 철수와영희가 신규팔로우 +38명으로 최다. 성과 채널의 편성 패턴 분석 및 우선 편성 검토 필요.',
+        date: '3월 슈퍼위크',
+        tags: ['라이브배너', '슈퍼그리퍼', '우수사례'],
+      },
+      {
+        type: 'info',
+        title: '와이드배너 + 톱배너 동시 운영 시 카니발 가능성 신호 포착',
+        desc: '3/16 럭키드롭 와이드배너(CTR 30.3%)와 톱배너를 동시 운영한 구간에서 카니발(자원 충돌) 가능성이 확인됐다. 동일 셀러·프로모션의 와이드+톱 동시 편성 시 트래픽 분산 여부를 모니터링하고, 단독 vs 병행 운영에 따른 클릭·팔로우 차이를 비교하는 기준 수립이 필요하다.',
+        date: '3/16 (월)',
+        tags: ['와이드배너', '카니발', '모니터링'],
+      },
+    ],
+    daily: [
+      {
+        date: '3/16', day: '일',
+        items: [
+          '톱배너 평균 CTR <strong>2.17%</strong>, 전일 마녀생일절 고효율 부재 영향 (-58.4%)',
+          '럭키드롭 와이드배너 CTR <strong>30.3%</strong> (1월 20%·2월 23% 대비 상승)',
+          '와이드+톱 동시 운영 카니발 가능성 포착 → 모니터링 필요',
+        ],
+      },
+      {
+        date: '3/17', day: '월',
+        items: [
+          '톱배너 평균 CTR <strong>2.03%</strong>, 라이브 톱배너 재개로 시청 유도 효과 확인',
+          '슈퍼위크 사후 배너: CTR 2.19%→1.16% 하락, <strong>동일 소재 반복 클릭 소진</strong> 확인',
+          '라이브배너: 직원가(스탈리쉬) 이중 편성으로 CTR·구매·팔로우 모두 상위권',
+        ],
+      },
+      {
+        date: '3/18', day: '화',
+        items: [
+          '톱배너 평균 CTR <strong>1.39%</strong>, 전일 대비 -31.5% — 사전오늘 배너 2개 분산 운영 영향',
+          '봄신상(2.12%) vs 봄신상수정(0.95%): <strong>동일 소재 중복 분산으로 클릭 충돌</strong>',
+          '개그맨김인석이 전체 GMV 49% 집중 → 단일 채널 의존도 주의',
+        ],
+      },
+      {
+        date: '3/19', day: '수',
+        items: [
+          '톱배너 평균 CTR <strong>1.49%</strong>, 소폭 반등 (+7.2%)',
+          '위클리스페셜라이브 4배너 분산: CTR 0.35~0.89% → <strong>저효율 반복 패턴</strong>',
+          '라이브배너 구매전환율 <strong>9.17% (+204%)</strong>, GMV <strong>1.26억 (+3,166%)</strong> 급증',
+          '아임마삐·개그맨김인석·마녀옷장·예수진화장품연구소가 성과 견인',
+        ],
+      },
+      {
+        date: '3/20~22', day: '목~토',
+        items: [
+          '슈퍼그리퍼 주간 편성 37개 채널, LB_2 기준 신규 팔로우 <strong>410명 증가</strong>',
+          '지혜로운일상 CTR <strong>9.42%</strong> — 구매전환·GMV 전 지표 주간 최고',
+          '주말 CTR: 채널 수 감소 + 마녀봄신상 영향으로 전주 대비 반등',
+        ],
+      },
+    ],
+    stats: [
+      { label: '3주차 일평균 CTR', value: '2.65%', sub: '전주 2.92% 대비 -9.2%', color: 'var(--r)' },
+      { label: '슈퍼그리퍼 팔로우', value: '410명', sub: 'LB_2 기준 주간 신규', color: 'var(--g)' },
+      { label: '최고 라이브배너', value: '9.42%', sub: '지혜로운일상 CTR', color: 'var(--b)' },
+      { label: '3/19 GMV', value: '+3,166%', sub: '전일 대비 라이브배너', color: 'var(--y)' },
+    ],
+  },
+];
+// [WEEKLY_INSIGHTS_END]
+
+// ════════════════════════════════════════════════
+//   DATA (실제 구글 시트 기반)
+// ════════════════════════════════════════════════
+
+// 주차 레이블 = 주 시작일 기준, 24주 (10/6~3/16) · 출처: 주간지표 시트
+const W = {
+  labels: [
+    '10/6','10/13','10/20','10/27','11/3','11/10','11/17','11/24',
+    '12/1','12/8','12/15','12/22','12/29',
+    '1/5','1/12','1/19','1/26',
+    '2/2','2/9','2/16','2/23',
+    '3/2','3/9','3/16'
+  ],
+
+  // 톱배너 CTR (%) — Oct-Dec:주간지표 톱배너행 / Jan-Mar:Row36
+  topBanner: [
+    1.47, 1.64, 2.91, 1.60, 3.03, 3.26, 5.19, 4.11,
+    2.99, 3.89, 7.73, 2.99, 2.15,
+    1.36, 2.47, 2.18, 2.91,
+    2.02, 2.16, 1.78, 2.11,
+    2.10, 2.97, 2.66
+  ],
+
+  // 홈ATF 배너 CTR (%) — Oct-Dec:프로모션탭행 / Jan-Mar:Row34
+  promoTab: [
+    1.50, 1.66, 1.89, 2.57, 1.65, 1.89, 2.25, 1.98,
+    1.70, 1.71, 3.26, 2.01, null,
+    2.69, 4.08, 7.38, 3.68,
+    6.50, 3.13, 3.27, 3.03,
+    3.16, 3.97, 9.91
+  ],
+
+  // 라이브배너 CTR (%) — Oct-Dec:라이브배너행 / Jan-Mar:Row37
+  liveBanner: [
+    3.72, 4.31, 3.92, 3.34, 4.38, 3.86, 2.93, 3.67,
+    4.61, 4.39, 3.41, 3.83, 3.58,
+    4.02, 5.70, 4.28, 4.74,
+    3.47, 5.56, 5.77, 4.72,
+    4.98, 6.05, 4.34
+  ],
+
+  // 시청전환 (%) — Row28
+  viewConv: [
+    41.44, 41.72, 41.10, 40.18, 39.87, 40.80, 40.20, 40.17,
+    39.91, 40.27, 38.30, 37.72, 37.06,
+    37.99, 39.15, 37.84, 36.44,
+    33.58, 36.46, 37.85, 36.59,
+    38.63, 40.17, 39.77
+  ],
+
+  // 구매전환 (%) — Row31
+  buyConv: [
+    7.73, 9.21, 9.37, 8.51, 8.54, 8.90, 8.78, 8.24,
+    8.19, 8.04, 9.06, 7.15, 6.36,
+    7.56, 7.43, 8.50, 7.89,
+    6.91, 5.03, 6.01, 7.94,
+    7.37, 8.30, 7.92
+  ],
+
+  // 프로모션 기여도 (%) — Jan-Mar 미수집
+  promoContrib: [
+    37.62, 11.65, 99.76, 23.38, 5.53, 11.20, 95.09, 7.48,
+    20.57, 14.19, 99.20, 11.56, 0.00,
+    ...Array(11).fill(null)
+  ],
+
+  // KPI 목표 — Oct-Dec:13주 / Jan:4주 / Feb-Mar:7주 (26년_KPI 시트)
+  // Oct-Dec: 2.04/40.04/8.21  Jan: 2.54/40.99/8.86  Feb-Mar: 2.60/41.60/8.99
+  topBannerTarget: [...Array(13).fill(2.04), ...Array(4).fill(2.54), ...Array(7).fill(2.60)],
+  viewConvTarget:  [...Array(13).fill(40.04),...Array(4).fill(40.99),...Array(7).fill(41.60)],
+  buyConvTarget:   [...Array(13).fill(8.21), ...Array(4).fill(8.86), ...Array(7).fill(8.99)],
+};
+
+// 라이브배너 RAW 주간 집계 (python으로 계산)
+// slots: 구좌(2~6번)별 주간 평균 CTR — RAW 시트 구좌번호 필터링 집계 후 채워야 함
+const LB = {
+  labels: ['10/27','11/3','11/10','11/17','11/24','12/1','12/8','12/15','12/22','12/29','1/5','1/12','1/19','1/26','2/2','2/9','2/16','2/23','3/2','3/9'],
+  ctr:    [3.94,   6.03,  5.11,  3.84,  5.06,  5.49,  5.49, 4.62,  5.14,  6.19,  5.48, 5.09, 4.87,  9.24, 4.15, 1.92, 2.65, 2.43, 2.33, 2.29],
+  count:  [32,     276,   264,   348,   320,   144,   194,  376,   228,   120,   188,  252,  346,   246,  296,  224,  104,  332,  166,  135],
+  // 구좌별 주간 평균 CTR — 라이브배너 RAW 시트 집계 (10/27 ~ 3/9, 20주)
+  slots: {
+    '2': { ctr: [3.92, 7.01, 6.14, 4.61, 5.04, 6.65, 6.71, 6.77, 6.0, 6.57, 8.23, 9.46, 7.43, 16.79, 5.99, 2.97, 3.01, 2.84, 2.73, 4.06], count: [28, 163, 156, 142, 118, 73, 102, 144, 125, 74, 54, 54, 100, 67, 93, 68, 50, 139, 74, 106] },
+    '3': { ctr: [4.08, 3.5, 3.4, 3.18, 4.48, 3.76, 4.47, 2.95, 4.35, 6.53, 4.48, 4.19, 3.86, 8.73, 3.58, 1.51, 2.33, 1.75, 1.51, 1.3], count: [4, 74, 77, 102, 80, 40, 52, 114, 74, 28, 94, 112, 102, 67, 84, 94, 36, 112, 56, 88] },
+    '4': { ctr: [null, 7.24, 3.48, 3.5, 5.91, 4.4, 3.65, 3.21, 3.12, 3.38, 4.47, 3.85, 3.23, 8.48, 3.14, 1.32, 1.59, 2.07, 1.33, 1.49], count: [0, 24, 18, 74, 50, 14, 24, 58, 22, 12, 26, 62, 55, 18, 37, 36, 8, 48, 16, 22] },
+    '5': { ctr: [null, null, 6.7, 0.97, 5.08, 6.05, 2.9, 2.2, null, 8.05, 2.29, 2.06, 3.4, 3.53, 2.89, 0.9, 0.92, 0.55, 2.14, 0.97], count: [0, 0, 2, 6, 6, 2, 10, 10, 0, 2, 6, 18, 54, 79, 57, 16, 2, 4, 6, 24] },
+    '6': { ctr: [null, 4.63, null, 4.22, 4.46, 2.58, null, 4.3, 4.42, null, 2.71, 3.18, 5.22, 9.73, 3.93, 2.11, 3.35, 4.67, 5.03, 6.58], count: [0, 6, 0, 12, 20, 2, 0, 22, 2, 0, 4, 2, 19, 2, 14, 8, 8, 20, 10, 20] },
+    '7': { ctr: [null, null, null, 2.49, 7.72, null, null, 2.22, null, null, 5.87, null, 3.22, 5.26, 3.19, 3.33, null, 2.29, 5.36, 1.85], count: [0, 0, 0, 4, 2, 0, 0, 2, 0, 0, 2, 0, 6, 2, 12, 2, 0, 4, 2, 2] },
+    '9': { ctr: [null, 7.41, 4.55, null, 7.02, 10.42, 5.21, null, 3.68, 3.39, null, null, 14.71, null, null, null, null, null, null, null], count: [0, 6, 2, 0, 7, 1, 3, 0, 2, 3, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0] },
+  },
+};
+
+// 배너 영역별 CTR – 9월 기준 (월별지표 시트)
+const AREA = {
+  labels: ['라이브배너','큐레이션탭','톱배너','라이브예고','쇼츠카드','소식','카드배너B','아이콘','카드배너A'],
+  ctr:    [3.55,        1.93,        1.90,   1.69,        1.45,      1.43, 0.86,      0.93,  0.46],
+};
+
+// 상단 와이드배너 이벤트별 CTR (최상단배너 지표)
+const WIDE = {
+  labels: ['12/15 슈퍼위크','12/16 프로모션','12/17 시청쿠폰','12/18 시청쿠폰','12/19','12/20','12/21','1/19 럭키드롭','1/19 아임마삐','1/19 저녁','1/20','1/21','1/21 사전','1/22','1/22 저녁','1/23','2/2 럭키드롭','2/2 김인석','2/2 김태진','2/3 박성광','2/3 아임마삐','2/4 이솔이','2/4 나래고기','2/4 아임마삐','2/5 쓰리백(사전)','2/5 쓰리백(라이브)','2/5 김인석','2/5 박성광','2/6 마녀옷장','2/6 흥정대황군','2/7 아임마삐','2/8 김태진'],
+  ctr:    [26.00,           25.88,           24.11,           25.12,           27.37, 26.75, 24.71, 20.46,  20.44,   21.25, 22.88, 22.38, 21.31, 22.67, 20.40, 22.58, 23.20, 20.03, 19.68, 18.57, 19.82, 19.91, 19.44, 18.48, 15.48, 19.72, 19.41, 20.13, 18.92, 18.01, 10.37, 19.70],
+};
+
+// ════════════════════════════════════════════════
+//   CHART DEFAULTS
+// ════════════════════════════════════════════════
+Chart.defaults.color = '#64748b';
+Chart.defaults.font.family = "'Pretendard', sans-serif";
+Chart.defaults.font.size = 16;
+// datalabels 플러그인 — 기본값 OFF (명시적으로 켠 차트만 사용)
+if (window.ChartDataLabels) {
+  Chart.register(ChartDataLabels);
+  Chart.defaults.set('plugins.datalabels', { display: false });
+}
+
+const TOOLTIP_OPTS = {
+  backgroundColor: '#16162a',
+  borderColor: 'rgba(255,255,255,.1)',
+  borderWidth: 1,
+  padding: 10,
+  titleFont: { size: 11, weight: '600' },
+  bodyFont: { size: 11 },
+  titleColor: '#e2e8f0',
+  bodyColor: '#94a3b8',
+};
+
+const GRID = 'rgba(255,255,255,0.04)';
+
+function baseOpts(extra) {
+  return Object.assign({
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: TOOLTIP_OPTS,
+    },
+    scales: {
+      x: { grid: { color: GRID }, ticks: { maxTicksLimit: 10, maxRotation: 0 } },
+      y: { grid: { color: GRID }, ticks: { callback: v => v + '%' } },
+    },
+  }, extra || {});
+}
+
+function lineDset(label, data, color, fill = false, hidden = false) {
+  return {
+    label, data, hidden,
+    borderColor: color,
+    backgroundColor: fill ? color.replace(')',', 0.08)').replace('rgb','rgba') : 'transparent',
+    borderWidth: 2,
+    pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: color,
+    tension: 0.3, fill,
+  };
+}
+
+function buildLegend(containerId, chartInst) {
+  const c = document.getElementById(containerId);
+  chartInst.data.datasets.forEach((ds, i) => {
+    const el = document.createElement('div');
+    el.className = 'leg-item';
+    el.innerHTML = `<div class="leg-line" style="background:${ds.borderColor}"></div>${ds.label}`;
+    el.onclick = () => {
+      ds.hidden = !ds.hidden;
+      el.classList.toggle('off', ds.hidden);
+      chartInst.update();
+    };
+    c.appendChild(el);
+  });
+}
+
+// ════════════════════════════════════════════════
+//   MONTHLY SNAPSHOT — 온사이트 월간 현황
+// ════════════════════════════════════════════════
+function buildMonthlySnapshot() {
+  const grid = document.getElementById('monthly-snap-grid');
+  if (!grid) return;
+
+  // ── 월 인덱스 ─────────────────────────────────
+  const selEl   = document.getElementById('monthly-snap-select');
+  const selIdx  = selEl ? parseInt(selEl.value, 10) : 3;
+  const prevIdx = selIdx - 1;
+
+  const curLbl  = MFUNNEL.labels[selIdx];
+  const prevLbl = (prevIdx >= 0) ? MFUNNEL.labels[prevIdx] : null;
+
+  // ── 기간 노트 (3월 = "3/22 누적 기준") ────────
+  const noteStr = (MFUNNEL.notes && MFUNNEL.notes[selIdx]) ? MFUNNEL.notes[selIdx] : null;
+
+  // 배지 업데이트
+  const badge = document.getElementById('monthly-snap-badge');
+  if (badge) badge.textContent = curLbl + (noteStr ? ' · ' + noteStr : '');
+
+  // ── 데이터 읽기 헬퍼 ─────────────────────────
+  function mget(key, idx) {
+    if (idx < 0 || idx >= MFUNNEL.labels.length) return null;
+    var arr = MFUNNEL[key];
+    if (!arr) return null;
+    var v = arr[idx];
+    return (v !== undefined && v !== null) ? v : null;
+  }
+
+  // ── 페이싱 공통 계산 ─────────────────────────
+  var today      = new Date();
+  var todayDay   = today.getDate();
+  var todayMonth = today.getMonth(); // 0-based
+  var todayYear  = today.getFullYear();
+  // selectedIdx 월의 daysInMonth (MFUNNEL.monthDays 기준)
+  var selMonthDays = (MFUNNEL.monthDays && MFUNNEL.monthDays[selIdx]) ? MFUNNEL.monthDays[selIdx] : null;
+  // 오늘이 선택월이면 today pct, 아니면 100%
+  var selLabels1 = ['25년 12월','26년 1월','26년 2월','26년 3월','26년 4월','26년 5월','26년 6월'];
+  var selMonthStr = selLabels1[selIdx];
+  var curMonthStr = (todayYear === 2026 ? '26년 ' : '25년 ') + (todayMonth + 1) + '월';
+  var isCurrentMonth = (selMonthStr === curMonthStr);
+  var timePct = (isCurrentMonth && selMonthDays)
+    ? Math.round(todayDay / selMonthDays * 100)
+    : (selIdx < 3 ? 100 : null);
+  var dataDay   = (MFUNNEL.dataDay && MFUNNEL.dataDay[selIdx]) ? MFUNNEL.dataDay[selIdx] : selMonthDays;
+  var dataPct   = (selMonthDays && dataDay) ? Math.round(dataDay / selMonthDays * 100) : null;
+
+  // ── 섹션 페이싱 위젯 업데이트 (월 선택 연동) ──
+  if (selMonthDays) {
+    var selMonNum  = selIdx === 0 ? 12 : selIdx;
+    var displayPct = (timePct !== null) ? timePct : 100;
+    var displayDay2 = isCurrentMonth ? todayDay : selMonthDays;
+    updateSectionPacing(selMonNum, selMonthDays, displayDay2, displayPct);
+  }
+
+  // ── 3개 카드 설정 ────────────────────────────
+  const cfgs = [
+    { label: '온사이트 팔로우수',   icon: '🏠', cls: 'v', unit: '명', type: 'count',
+      cur: mget('followers', selIdx),  prv: mget('followers', prevIdx),
+      target: mget('followers_target', selIdx) },
+    { label: '온사이트 유효시청자수', icon: '⏱',  cls: 'c', unit: '명', type: 'count',
+      cur: mget('onsiteEffView', selIdx),    prv: mget('onsiteEffView', prevIdx),
+      target: mget('onsiteEffView_target', selIdx) },
+    { label: '편성 CTR',           icon: '📊', cls: 'g', unit: '%',  type: 'rate',
+      cur: mget('schedCTR',  selIdx),  prv: mget('schedCTR',  prevIdx),
+      target: mget('schedCTR_target', selIdx) },
+  ];
+
+  grid.innerHTML = cfgs.map(c => {
+    const { cur, prv } = c;
+    const isRate = c.type === 'rate';
+
+    // 값 표시
+    let valStr  = '–';
+    let unitStr = '';
+    if (cur != null) {
+      valStr  = isRate ? cur.toFixed(2) : cur.toLocaleString();
+      unitStr = `<span class="kpi-unit">${c.unit}</span>`;
+    }
+
+    // 전월 대비 계산
+    let footHTML = '';
+    if (cur != null && prv != null) {
+      const diff   = cur - prv;
+      const pos    = diff >= 0;
+      const cls    = pos ? 'tag-g' : 'tag-r';
+      const arrow  = pos ? '▲' : '▼';
+      if (isRate) {
+        footHTML = `<span class="tag ${cls}">${arrow} ${Math.abs(diff).toFixed(2)}%p</span>
+                    <span class="kpi-foot-label">전월(${prevLbl}) 대비</span>`;
+      } else {
+        const pct  = prv !== 0 ? (diff / prv * 100) : 0;
+        const absDiff = Math.abs(diff).toLocaleString();
+        footHTML = `<span class="tag ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>
+                    <span class="kpi-foot-label">${pos ? '+' : '-'}${absDiff}${c.unit} vs ${prevLbl}</span>`;
+      }
+    } else if (cur == null) {
+      footHTML = `<span style="font-size:16px;color:var(--text-3)">해당 월 미수집</span>`;
+    } else {
+      footHTML = `<span style="font-size:16px;color:var(--text-3)">전월 비교 데이터 없음</span>`;
+    }
+
+    const noteBadge = c.note
+      ? `<span style="font-size:14px;color:var(--text-3);font-weight:400;margin-left:5px">${c.note}</span>`
+      : '';
+
+    // ── 페이싱 배지 ──────────────────────────────
+    var pacingHTML = '';
+    if (cur != null && c.target != null && c.target > 0) {
+      var reachPct = Math.round(cur / c.target * 100);
+      var icon2 = reachPct >= 100 ? '🟢' : reachPct >= 80 ? '🟡' : '🔴';
+      pacingHTML = `<div class="kpi-pacing">
+        <span>${icon2}</span>
+        <span class="pace-label">목표 대비 ${reachPct}% 도달</span>
+      </div>`;
+    }
+
+    return `<div class="card kpi ${c.cls} fade">
+      <div class="kpi-label">${c.icon} ${c.label}${noteBadge}</div>
+      <div class="kpi-main"><span class="kpi-val">${valStr}</span>${unitStr}</div>
+      <div class="kpi-foot">${footHTML}</div>
+      ${pacingHTML}
+    </div>`;
+  }).join('');
+
+
+  // 도넛 & 퍼널 이탈률 — 항상 전체 데이터 기준 (타겟 필터 무관)
+  buildInflowDonut(selIdx);
+  buildStageFunnel(selIdx);
+  buildOnsiteDetailTable(selIdx);
+
+  // ── 인사이트 블록 (팔로우 + 유효시청, 구매전환율 제외) ──
+  var noticeWrap = document.getElementById('achieve-notice-wrap');
+  if (noticeWrap) {
+    var sections = [];
+
+    // 동기간 비교 여부
+    var prevMoDaysN  = (MFUNNEL.monthDays && prevIdx >= 0) ? MFUNNEL.monthDays[prevIdx] : null;
+    var isPartialN   = dataDay != null && selMonthDays != null && dataDay < selMonthDays;
+    function scaleP(v) {
+      if (!isPartialN || v == null || prevMoDaysN == null || prevMoDaysN === 0) return v;
+      return Math.round(v * dataDay / prevMoDaysN);
+    }
+    var compLabel = isPartialN ? '전월 동기간 대비' : (prevLbl ? prevLbl + ' 대비' : null);
+
+    // ① 팔로우수 인사이트
+    var cFoll  = mget('followers', selIdx);
+    var pFoll  = scaleP(mget('followers', prevIdx));
+    var cFavg  = (ONSITE_DETAIL.follower_avg && ONSITE_DETAIL.follower_avg[selIdx] != null) ? ONSITE_DETAIL.follower_avg[selIdx] : null;
+    var pFavg  = (prevIdx >= 0 && ONSITE_DETAIL.follower_avg && ONSITE_DETAIL.follower_avg[prevIdx] != null) ? ONSITE_DETAIL.follower_avg[prevIdx] : null;
+    var cEvt   = (ONSITE_DETAIL.top_evt_follower && ONSITE_DETAIL.top_evt_follower[selIdx] != null) ? ONSITE_DETAIL.top_evt_follower[selIdx] : null;
+
+    if (cFoll != null) {
+      var follDiff   = (pFoll != null) ? (cFoll - pFoll) : null;
+      var follDiffPct= (pFoll != null && pFoll !== 0) ? (follDiff / pFoll * 100) : null;
+      var fPos       = follDiff != null ? follDiff >= 0 : null;
+      var fArrow     = fPos === null ? '' : (fPos ? '▲' : '▼');
+      var fClr       = fPos === null ? 'var(--text-2)' : (fPos ? 'var(--g)' : 'var(--r)');
+      var follDeltaStr = follDiff != null
+        ? `<span class="it-delta" style="color:${fClr}">${fArrow} ${Math.abs(follDiff).toLocaleString()}명 (${Math.abs(follDiffPct).toFixed(1)}%)</span>${isPartialN ? ' <span style="font-size:13px;color:var(--text-3)">동기간 대비</span>' : ''}`
+        : '';
+
+      var details = [];
+      if (cFavg != null && pFavg != null) {
+        var favgDiff = cFavg - pFavg;
+        var favgCls  = favgDiff >= 0 ? 'iup' : 'idn';
+        var favgArr  = favgDiff >= 0 ? '↑' : '↓';
+        details.push(`<span class="insight-tag"><span class="${favgCls}">${favgArr} 방송별 평균 팔로우 ${pFavg.toFixed(2)} → ${cFavg.toFixed(2)} (${favgDiff >= 0 ? '+' : ''}${favgDiff.toFixed(2)})</span> <span class="ine">— 방송당 효율 ${favgDiff >= 0 ? '개선' : '하락'}</span></span>`);
+      }
+      if (cEvt != null && cFoll > 0) {
+        var evtRatio = (cEvt / cFoll * 100).toFixed(0);
+        details.push(`<span class="ine">톱배너 이벤트 기여 <span class="iup">${Number(cEvt).toLocaleString()}명 (${evtRatio}%)</span></span>`);
+      }
+      if (follDiff != null && follDiff < 0 && cFavg != null && pFavg != null && cFavg > pFavg) {
+        details.push(`<span class="ine">방송 수 감소로 절대치는 하락했으나, 방송 효율은 개선 중</span>`);
+      }
+
+      sections.push(`<div class="insight-section">
+        <div class="insight-title">🏠 팔로우수 &nbsp;<span style="color:var(--text-2);font-size:15px;font-weight:400">${cFoll.toLocaleString()}명</span> ${follDeltaStr}</div>
+        ${details.length ? `<div class="insight-detail">${details.join('')}</div>` : ''}
+      </div>`);
+    }
+
+    // ② 유효시청자수 인사이트
+    var cEff   = mget('onsiteEffView', selIdx);
+    var pEff   = scaleP(mget('onsiteEffView', prevIdx));
+    var cView  = mget('viewCount', selIdx);
+    var pView  = mget('viewCount', prevIdx);
+    var cInf   = mget('inflow', selIdx);
+    var pInf   = mget('inflow', prevIdx);
+
+    if (cEff != null) {
+      var effDiff    = (pEff != null) ? (cEff - pEff) : null;
+      var effDiffPct = (pEff != null && pEff !== 0) ? (effDiff / pEff * 100) : null;
+      var ePos       = effDiff != null ? effDiff >= 0 : null;
+      var eArrow     = ePos === null ? '' : (ePos ? '▲' : '▼');
+      var eClr       = ePos === null ? 'var(--text-2)' : (ePos ? 'var(--g)' : 'var(--r)');
+      var effDeltaStr = effDiff != null
+        ? `<span class="it-delta" style="color:${eClr}">${eArrow} ${Math.abs(effDiff).toLocaleString()}명 (${Math.abs(effDiffPct).toFixed(1)}%)</span>${isPartialN ? ' <span style="font-size:13px;color:var(--text-3)">동기간 대비</span>' : ''}`
+        : '';
+
+      var eDetails = [];
+      var cEffAvg2 = (ONSITE_DETAIL.effview_avg && ONSITE_DETAIL.effview_avg[selIdx] != null) ? ONSITE_DETAIL.effview_avg[selIdx] : null;
+      var pEffAvg2 = (prevIdx >= 0 && ONSITE_DETAIL.effview_avg && ONSITE_DETAIL.effview_avg[prevIdx] != null) ? ONSITE_DETAIL.effview_avg[prevIdx] : null;
+      if (cEffAvg2 != null && pEffAvg2 != null) {
+        var eaDiff = cEffAvg2 - pEffAvg2;
+        var eaCls  = eaDiff >= 0 ? 'iup' : 'idn';
+        var eaArr  = eaDiff >= 0 ? '↑' : '↓';
+        eDetails.push(`<span class="insight-tag"><span class="${eaCls}">${eaArr} 방송별 평균 유효시청자 ${pEffAvg2} → ${cEffAvg2}명 (${eaDiff >= 0 ? '+' : ''}${eaDiff})</span> <span class="ine">— 시청 집중도 ${eaDiff >= 0 ? '개선' : '하락'}</span></span>`);
+      }
+      if (effDiff != null && effDiff < 0 && cEffAvg2 != null && pEffAvg2 != null && cEffAvg2 > pEffAvg2) {
+        eDetails.push(`<span class="ine">방송 수 감소로 절대치는 하락했으나, 방송당 효율은 개선 중</span>`);
+      }
+
+      sections.push(`<div class="insight-section">
+        <div class="insight-title">⏱ 유효시청자수 &nbsp;<span style="color:var(--text-2);font-size:15px;font-weight:400">${cEff.toLocaleString()}명</span> ${effDeltaStr}</div>
+        ${eDetails.length ? `<div class="insight-detail">${eDetails.join('')}</div>` : ''}
+      </div>`);
+    }
+
+    if (sections.length) {
+      noticeWrap.innerHTML = `<div class="insight-block">${sections.join('<hr class="insight-divider-h">')}</div>`;
+    } else {
+      noticeWrap.innerHTML = '';
+    }
+  }
+  buildMonthlyInsightBox(selIdx);
+  buildMonthlyAchieveBox(selIdx);
+}
+
+// ════════════════════════════════════════════════
+//   MONTHLY ACHIEVE BOX (월간 달성률 — 목표 설정 월만 표시)
+// ════════════════════════════════════════════════
+function buildMonthlyAchieveBox(selIdx) {
+  var box = document.getElementById('monthly-achieve-box');
+  if (!box) return;
+
+  var kpis = [
+    { label: '온사이트 팔로우수',    icon: '🏠', key: 'followers',     targetKey: 'followers_target',     unit: '명',  isRate: false },
+    { label: '온사이트 유효시청자수', icon: '⏱', key: 'onsiteEffView', targetKey: 'onsiteEffView_target', unit: '명',  isRate: false },
+    { label: '편성 CTR',  icon: '📊', key: 'schedCTR',      targetKey: 'schedCTR_target',      unit: '%',   isRate: true  },
+  ];
+
+  function mg(key) {
+    var arr = MFUNNEL[key];
+    if (!arr || arr[selIdx] === undefined || arr[selIdx] === null) return null;
+    return arr[selIdx];
+  }
+
+  var curLbl = MFUNNEL.labels[selIdx] || '';
+
+  var itemsHTML = kpis.map(function(k) {
+    var actual = mg(k.key);
+    var target = mg(k.targetKey);
+
+    // 목표 미설정
+    if (target == null) {
+      return `<div class="achieve-item">
+        <div class="achieve-item-head">
+          <span class="achieve-item-label">⚪ ${k.label}</span>
+          <span class="achieve-item-pct" style="color:var(--text-3)">–</span>
+        </div>
+        <div class="achieve-bar-outer"><div class="achieve-bar-inner" style="width:0%"></div></div>
+        <div class="achieve-item-vals" style="color:var(--text-3)">목표 미설정</div>
+      </div>`;
+    }
+
+    var pct    = (actual != null && target > 0) ? Math.round(actual / target * 100) : null;
+    var barW   = pct != null ? Math.min(pct, 100) : 0;
+    var icon   = pct == null ? '⚪' : pct >= 100 ? '🟢' : pct >= 80 ? '🟡' : '🔴';
+    var pctClr = pct == null ? 'var(--text-3)'
+               : pct >= 100 ? 'var(--g)' : pct >= 80 ? 'var(--y)' : 'var(--r)';
+    var barClr = pctClr === 'var(--text-3)' ? 'rgba(255,255,255,.15)' : pctClr;
+
+    var actualStr = actual != null
+      ? (k.isRate ? actual.toFixed(2) + k.unit : actual.toLocaleString() + k.unit)
+      : '미수집';
+    var targetStr = k.isRate ? target.toFixed(2) + k.unit : target.toLocaleString() + k.unit;
+    var pctStr    = pct != null ? pct + '%' : '–';
+
+    return `<div class="achieve-item">
+      <div class="achieve-item-head">
+        <span class="achieve-item-label">${icon} ${k.label}</span>
+        <span class="achieve-item-pct" style="color:${pctClr}">${pctStr}</span>
+      </div>
+      <div class="achieve-bar-outer">
+        <div class="achieve-bar-inner" style="width:${barW}%;background:${barClr}"></div>
+      </div>
+      <div class="achieve-item-vals">
+        실적 <strong>${actualStr}</strong> &nbsp;/&nbsp; 목표 ${targetStr}
+      </div>
+    </div>`;
+  }).join('');
+
+  box.innerHTML = `<div class="sec-label-lg" style="margin-top:28px">${curLbl} KR 달성률</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+    ${itemsHTML}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════
+//   MONTHLY INSIGHT BOX (동적 — 월 선택 연동)
+// ════════════════════════════════════════════════
+function buildMonthlyInsightBox(selIdx) {
+  var box = document.getElementById('monthly-insight-box');
+  if (!box) return;
+
+  var prevIdx = selIdx - 1;
+  var curLbl  = MFUNNEL.labels[selIdx];
+  var prevLbl = prevIdx >= 0 ? MFUNNEL.labels[prevIdx] : null;
+
+  function mg(key, idx) {
+    if (idx < 0 || idx >= MFUNNEL.labels.length) return null;
+    var v = MFUNNEL[key] ? MFUNNEL[key][idx] : null;
+    return (v !== undefined && v !== null) ? v : null;
+  }
+
+  // 동기간 비교 여부
+  var dataDay     = mg('dataDay', selIdx);
+  var monthDays   = mg('monthDays', selIdx);
+  var prevMoDays  = prevIdx >= 0 ? mg('monthDays', prevIdx) : null;
+  var isPartial   = dataDay != null && monthDays != null && dataDay < monthDays;
+  function scalePrev(v) {
+    if (!isPartial || v == null || prevMoDays == null || prevMoDays === 0) return v;
+    return Math.round(v * dataDay / prevMoDays);
+  }
+
+  var cFoll  = mg('followers', selIdx);
+  var pFoll  = scalePrev(mg('followers', prevIdx));
+  var cEff   = mg('onsiteEffView', selIdx);
+  var pEff   = scalePrev(mg('onsiteEffView', prevIdx));
+  var cFavg  = (ONSITE_DETAIL.follower_avg && ONSITE_DETAIL.follower_avg[selIdx] != null)
+               ? ONSITE_DETAIL.follower_avg[selIdx] : null;
+  var pFavg  = (prevIdx >= 0 && ONSITE_DETAIL.follower_avg && ONSITE_DETAIL.follower_avg[prevIdx] != null)
+               ? ONSITE_DETAIL.follower_avg[prevIdx] : null;
+  var cEffAvg = (ONSITE_DETAIL.effview_avg && ONSITE_DETAIL.effview_avg[selIdx] != null)
+                ? ONSITE_DETAIL.effview_avg[selIdx] : null;
+  var pEffAvg = (prevIdx >= 0 && ONSITE_DETAIL.effview_avg && ONSITE_DETAIL.effview_avg[prevIdx] != null)
+                ? ONSITE_DETAIL.effview_avg[prevIdx] : null;
+  var cEvt   = (ONSITE_DETAIL.top_evt_follower && ONSITE_DETAIL.top_evt_follower[selIdx] != null)
+               ? ONSITE_DETAIL.top_evt_follower[selIdx] : null;
+
+  var follDiff    = (cFoll != null && pFoll != null) ? cFoll - pFoll : null;
+  var follDiffPct = (follDiff != null && pFoll > 0) ? follDiff / pFoll * 100 : null;
+  var effDiff     = (cEff != null && pEff != null) ? cEff - pEff : null;
+  var effDiffPct  = (effDiff != null && pEff > 0) ? effDiff / pEff * 100 : null;
+  var favgDelta   = (cFavg != null && pFavg != null) ? cFavg - pFavg : null;
+  var effAvgDelta = (cEffAvg != null && pEffAvg != null) ? cEffAvg - pEffAvg : null;
+
+  // 제목
+  var follUp = follDiff != null ? follDiff >= 0 : null;
+  var effUp  = effDiff != null  ? effDiff >= 0  : null;
+  var title;
+  if (follUp === true  && effUp === true)  title = '팔로우·유효시청자 동반 성장 ✦';
+  else if (follUp === false && effUp === true)  title = '팔로우 감소 속 유효시청자 상승';
+  else if (follUp === true  && effUp === false) title = '팔로우 증가 · 유효시청자 조정 구간';
+  else if (follUp === false && effUp === false) title = '팔로우·유효시청자 동반 하락 — 편성 점검 필요 ⚠';
+  else title = curLbl + ' · 온사이트 운영 현황';
+
+  // ── 1줄: 숫자 변화 ────────────────────────────
+  var num1Parts = [];
+  if (cFoll != null) {
+    var fClr = follDiff == null ? 'var(--text-2)' : follDiff >= 0 ? 'var(--g)' : 'var(--r)';
+    var fArr = follDiff == null ? '' : follDiff >= 0 ? '▲' : '▼';
+    var fStr = '팔로우수 <strong style="color:' + fClr + '">' + cFoll.toLocaleString() + '명</strong>';
+    if (follDiff != null) fStr += ' <span style="font-size:13px;color:' + fClr + '">(' + fArr + Math.abs(follDiff).toLocaleString() + '명)</span>';
+    num1Parts.push(fStr);
+  }
+  if (cEff != null) {
+    var eClr = effDiff == null ? 'var(--text-2)' : effDiff >= 0 ? 'var(--g)' : 'var(--r)';
+    var eArr = effDiff == null ? '' : effDiff >= 0 ? '▲' : '▼';
+    var eStr = '유효시청자수 <strong style="color:' + eClr + '">' + cEff.toLocaleString() + '명</strong>';
+    if (effDiff != null) eStr += ' <span style="font-size:13px;color:' + eClr + '">(' + eArr + Math.abs(effDiff).toLocaleString() + '명)</span>';
+    num1Parts.push(eStr);
+  }
+  var line1Prefix = prevLbl
+    ? prevLbl + (isPartial ? ' 동기간 대비' : ' 대비')
+    : curLbl + ' 기준';
+  var line1 = '<span style="color:var(--text-3)">' + line1Prefix + '</span><br>' + num1Parts.join('<br>');
+
+  // ── 2줄: 변화의 의미 ──────────────────────────
+  var interps = [];
+  if (favgDelta != null && favgDelta > 0.1) {
+    interps.push('방송별 평균 팔로우 개선 (' + (pFavg ? pFavg.toFixed(2) : '–') + ' → ' + cFavg.toFixed(2) + '명) — 편성 효율 상승');
+  } else if (favgDelta != null && favgDelta < -0.1) {
+    interps.push('방송별 평균 팔로우 하락 (' + (pFavg ? pFavg.toFixed(2) : '–') + ' → ' + cFavg.toFixed(2) + '명) — 편성 밀도 분산 영향');
+  }
+  if (cEvt != null && cFoll != null && cFoll > 0) {
+    var evtRatio = (cEvt / cFoll * 100).toFixed(0);
+    interps.push('톱배너 이벤트가 팔로우의 ' + evtRatio + '% 기여 (' + Number(cEvt).toLocaleString() + '명)');
+  }
+  if (effAvgDelta != null && effAvgDelta > 0) {
+    interps.push('방송별 평균 유효시청자 개선 (' + (pEffAvg || '–') + ' → ' + cEffAvg + '명) — 시청 집중도 상승');
+  } else if (effAvgDelta != null && effAvgDelta < 0) {
+    interps.push('방송별 평균 유효시청자 하락 (' + (pEffAvg || '–') + ' → ' + cEffAvg + '명) — 방송 분산 편성 영향');
+  }
+  if (follDiff != null && follDiff < 0 && favgDelta != null && favgDelta > 0) {
+    interps.push('방송 수 감소로 절대치 하락 · 방송당 효율은 개선 중');
+  }
+  var line2 = interps.length ? interps.join('<br>') : (prevLbl ? '전월 대비 주요 지표 변화 관찰 중' : '분기 첫달 기준 데이터');
+
+  // ── 배지 (3열 고정 그리드로 동일 간격) ─────────
+
+  box.innerHTML =
+    '<div style="padding:20px 24px;background:linear-gradient(135deg,rgba(124,58,237,.13),rgba(99,102,241,.07));' +
+    'border:1.5px solid rgba(167,139,250,.38);border-radius:14px;position:relative;overflow:hidden">' +
+      '<div style="position:absolute;top:0;left:0;right:0;height:2.5px;background:linear-gradient(90deg,#7c3aed,#a78bfa,#60a5fa)"></div>' +
+      '<div style="font-size:22px;font-weight:700;letter-spacing:-.4px;color:var(--v);' +
+           'margin-bottom:12px;display:flex;align-items:center;gap:8px">' +
+        curLbl.replace(/^\d+년 /, '') + ' 인사이트' +
+      '</div>' +
+      '<div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap">' +
+        '<div style="flex:1;min-width:260px">' +
+          '<div style="font-size:20.5px;font-weight:800;color:var(--text-1);margin-bottom:10px;letter-spacing:-.3px">' + title + '</div>' +
+          // 1줄: 숫자 변화 (항목별 줄넘김)
+          '<div style="font-size:15px;color:var(--text-2);line-height:2;margin-bottom:8px">' + line1 + '</div>' +
+          // 구분선
+          '<div style="height:1px;background:var(--border);margin:6px 0"></div>' +
+          // 2줄: 의미 (항목별 줄넘김)
+          '<div style="font-size:14px;color:var(--text-1);line-height:2">' + line2 + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+// ════════════════════════════════════════════════
+//   온사이트 구좌별 상세 테이블
+// ════════════════════════════════════════════════
+function buildOnsiteDetailTable(selIdx) {
+  const wrap = document.getElementById('onsite-detail-wrap');
+  if (!wrap) return;
+
+  // 유효시청자 총계 (ONSITE_DETAIL.effview_total 기준)
+  var effViewTotal = (ONSITE_DETAIL.effview_total && ONSITE_DETAIL.effview_total[selIdx] != null)
+    ? ONSITE_DETAIL.effview_total[selIdx] : null;
+
+  const d    = ONSITE_DETAIL;
+  const idx  = selIdx;
+  const lbl  = d.labels[idx] || '';
+
+  var prevIdx2 = idx - 1;
+
+  function v(key) {
+    var arr = d[key];
+    if (!arr) return null;
+    var val = arr[idx];
+    return (val !== undefined && val !== null) ? val : null;
+  }
+  function vp(key) {
+    if (prevIdx2 < 0) return null;
+    var arr = d[key];
+    if (!arr) return null;
+    var val = arr[prevIdx2];
+    return (val !== undefined && val !== null) ? val : null;
+  }
+  function fmt(val, decimals) {
+    if (val === null) return '<span style="color:var(--text-3)">–</span>';
+    if (decimals !== undefined) return Number(val).toFixed(decimals);
+    return Number(val).toLocaleString();
+  }
+  function deltaBadge(cur, prv) {
+    if (cur === null || prv === null || prv === 0) return '';
+    var pct = (cur - prv) / prv * 100;
+    var pos = pct >= 0;
+    var col = pos ? '#34d399' : '#fb7185';
+    var arr = pos ? '↑' : '↓';
+    return `<span style="font-size:14.5px;color:${col};font-weight:700;margin-left:5px;white-space:nowrap">${arr}${Math.abs(pct).toFixed(1)}%</span>`;
+  }
+
+  // ─── 공통 스타일 상수 ────────────────────────
+  const BD   = '1px solid rgba(255,255,255,.06)';
+  const PAD  = '8px 12px';
+  const PADB = '9px 12px';
+
+  // th: 헤더 공통
+  function th(txt, align) {
+    align = align || 'right';
+    return `<th style="padding:${PADB};font-size:15px;font-weight:600;color:var(--text-3);
+      text-transform:uppercase;letter-spacing:.04em;border-bottom:${BD};
+      text-align:${align};white-space:nowrap">${txt}</th>`;
+  }
+  // td: 레이블 셀 (1번 열)
+  function tdLabel(label, color) {
+    return `<td style="padding:${PAD};border-bottom:${BD};vertical-align:middle;white-space:nowrap">
+      <span style="display:inline-flex;align-items:center;gap:7px">
+        <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block"></span>
+        ${label}
+      </span></td>`;
+  }
+  // td: 숫자 셀 (우측 정렬)
+  function tdNum(val, decimals, extra) {
+    extra = extra || '';
+    return `<td style="padding:${PAD};border-bottom:${BD};text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">${fmt(val, decimals)}${extra}</td>`;
+  }
+  // td: 합계 행용 숫자 셀
+  function tdFoot(val, decimals, color, extra) {
+    color = color || 'var(--text-1)';
+    extra = extra || '';
+    return `<td style="padding:${PADB};border-bottom:${BD};text-align:right;font-weight:700;color:${color};font-variant-numeric:tabular-nums;white-space:nowrap">${fmt(val, decimals)}${extra}</td>`;
+  }
+  // td: 합계 행 레이블
+  function tdFootLabel(txt) {
+    return `<td style="padding:${PADB};border-bottom:${BD};color:var(--text-2);font-weight:600">${txt}</td>`;
+  }
+
+  // 팔로우 테이블
+  var follTotalCur = v('follower_total');
+  var follTotalPrv = vp('follower_total');
+
+  const followerTable = `
+    <table style="width:100%;border-collapse:collapse;font-size:16.5px;table-layout:fixed">
+      <colgroup>
+        <col style="width:34%">
+        <col style="width:24%">
+        <col style="width:28%">
+        <col style="width:14%">
+      </colgroup>
+      <thead><tr>
+        ${th('배너 구좌','left')}
+        ${th('팔로우 합계')}
+        ${th('방송별 평균 팔로우')}
+        ${th('방송 수')}
+      </tr></thead>
+      <tbody>
+        <tr>
+          ${tdLabel('톱배너 예고','#a78bfa')}
+          ${tdNum(v('top_pre_follower'), undefined, deltaBadge(v('top_pre_follower'), vp('top_pre_follower')))}
+          ${tdNum(v('top_pre_avg'), 2, deltaBadge(v('top_pre_avg'), vp('top_pre_avg')))}
+          ${tdNum(v('top_pre_channel'), undefined, deltaBadge(v('top_pre_channel'), vp('top_pre_channel')))}
+        </tr>
+        <tr>
+          ${tdLabel('톱배너 이벤트','#c4b5fd')}
+          ${tdNum(v('top_evt_follower'), undefined, deltaBadge(v('top_evt_follower'), vp('top_evt_follower')))}
+          ${tdNum(v('top_evt_avg'), 2, deltaBadge(v('top_evt_avg'), vp('top_evt_avg')))}
+          ${tdNum(v('top_evt_channel'), undefined, deltaBadge(v('top_evt_channel'), vp('top_evt_channel')))}
+        </tr>
+        <tr>
+          ${tdLabel('특수배너 예고','#818cf8')}
+          ${tdNum(v('spc_pre_follower'), undefined, deltaBadge(v('spc_pre_follower'), vp('spc_pre_follower')))}
+          ${tdNum(v('spc_pre_avg'), 2, deltaBadge(v('spc_pre_avg'), vp('spc_pre_avg')))}
+          ${tdNum(v('spc_pre_channel'), undefined, deltaBadge(v('spc_pre_channel'), vp('spc_pre_channel')))}
+        </tr>
+      </tbody>
+      <tfoot><tr style="background:rgba(255,255,255,.03)">
+        ${tdFootLabel('전체 합계')}
+        ${tdFoot(follTotalCur, undefined, 'var(--v)', deltaBadge(follTotalCur, follTotalPrv))}
+        ${tdFoot(v('follower_avg'), 2, 'var(--text-2)', deltaBadge(v('follower_avg'), vp('follower_avg')))}
+        ${tdFoot(null, undefined, 'var(--text-3)')}
+      </tr></tfoot>
+    </table>`;
+
+  // 유효시청자 테이블
+  var effPrvTotal = (ONSITE_DETAIL.effview_total && prevIdx2 >= 0 && ONSITE_DETAIL.effview_total[prevIdx2] != null)
+    ? ONSITE_DETAIL.effview_total[prevIdx2] : null;
+
+  var totalChannel = [v('top_live_channel'), v('lb2_channel'), v('spc_live_channel')]
+    .reduce(function(s, n) { return (s !== null && n !== null) ? s + n : null; }, 0);
+  var totalAvg = (effViewTotal !== null && totalChannel !== null && totalChannel > 0)
+    ? Math.round(effViewTotal / totalChannel) : null;
+
+  const effTable = `
+    <table style="width:100%;border-collapse:collapse;font-size:16.5px;table-layout:fixed">
+      <colgroup>
+        <col style="width:34%">
+        <col style="width:24%">
+        <col style="width:28%">
+        <col style="width:14%">
+      </colgroup>
+      <thead><tr>
+        ${th('배너 구좌','left')}
+        ${th('유효시청자 합계')}
+        ${th('방송별 평균 유효시청자')}
+        ${th('방송 수')}
+      </tr></thead>
+      <tbody>
+        <tr>
+          ${tdLabel('톱배너 라이브','#34d399')}
+          ${tdNum(v('top_live_eff'), undefined, deltaBadge(v('top_live_eff'), vp('top_live_eff')))}
+          ${tdNum(v('top_live_avg'), 2, deltaBadge(v('top_live_avg'), vp('top_live_avg')))}
+          ${tdNum(v('top_live_channel'), undefined, deltaBadge(v('top_live_channel'), vp('top_live_channel')))}
+        </tr>
+        <tr>
+          ${tdLabel('2번 라이브 배너','#22d3ee')}
+          ${tdNum(v('lb2_eff'), undefined, deltaBadge(v('lb2_eff'), vp('lb2_eff')))}
+          ${tdNum(v('lb2_avg'), 2, deltaBadge(v('lb2_avg'), vp('lb2_avg')))}
+          ${tdNum(v('lb2_channel'), undefined, deltaBadge(v('lb2_channel'), vp('lb2_channel')))}
+        </tr>
+        <tr>
+          ${tdLabel('특수배너 라이브','#60a5fa')}
+          ${tdNum(v('spc_live_eff'), undefined, deltaBadge(v('spc_live_eff'), vp('spc_live_eff')))}
+          ${tdNum(v('spc_live_avg'), 2, deltaBadge(v('spc_live_avg'), vp('spc_live_avg')))}
+          ${tdNum(v('spc_live_channel'), undefined, deltaBadge(v('spc_live_channel'), vp('spc_live_channel')))}
+        </tr>
+      </tbody>
+      <tfoot><tr style="background:rgba(255,255,255,.03)">
+        ${tdFootLabel('전체 합계')}
+        ${tdFoot(effViewTotal, undefined, 'var(--c)', deltaBadge(effViewTotal, effPrvTotal))}
+        ${tdFoot(totalAvg, undefined, 'var(--c)')}
+        ${tdFoot(totalChannel, undefined, 'var(--c)')}
+      </tr></tfoot>
+    </table>`;
+
+  wrap.innerHTML = `
+    <div class="sec-label-lg">구좌별 성과</div>
+    <div class="card" style="padding:20px 24px">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+        <span style="font-size:14.5px;color:var(--text-3);font-weight:400">* 수치 옆 ↑↓ 는 전월 대비 추이</span>
+      </div>
+      <div class="g2" style="gap:16px">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--v);margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">🏠 팔로우</div>
+          ${followerTable}
+        </div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--c);margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">⏱ 유효시청자</div>
+          ${effTable}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════
+//   KPI 연간 트렌드 라인 차트 (실적 vs 목표)
+// ════════════════════════════════════════════════
+function buildKpiTrendChart() {
+  const canvas = document.getElementById('c-kpiTrend');
+  if (!canvas) return;
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+
+  const lbl = MONTHLY_PLAN.labels;
+
+  // ── 데이터셋 정의 ─────────────────────────────
+  const datasets = [
+    // 유효시청수 실적
+    {
+      label: '유효시청수 실적',
+      data: MONTHLY_PLAN.effView_actual,
+      borderColor: '#60a5fa',
+      backgroundColor: 'rgba(96,165,250,0.08)',
+      borderWidth: 2.5,
+      pointRadius: 5, pointHoverRadius: 7,
+      pointBackgroundColor: '#60a5fa',
+      pointBorderColor: '#0f0f23', pointBorderWidth: 2,
+      tension: 0.35, fill: true,
+      yAxisID: 'yCount',
+      spanGaps: false,
+      datalabels: { display: false },
+    },
+    // 유효시청수 목표
+    {
+      label: '유효시청수 목표',
+      data: MONTHLY_PLAN.effView_target,
+      borderColor: 'rgba(96,165,250,0.45)',
+      backgroundColor: 'transparent',
+      borderWidth: 1.5, borderDash: [5, 4],
+      pointRadius: 3, pointBackgroundColor: 'rgba(96,165,250,0.45)',
+      tension: 0.35, fill: false,
+      yAxisID: 'yCount',
+      spanGaps: true,
+      datalabels: { display: false },
+    },
+    // 팔로우수 실적
+    {
+      label: '팔로우수 실적',
+      data: MONTHLY_PLAN.followers_actual,
+      borderColor: '#a78bfa',
+      backgroundColor: 'rgba(167,139,250,0.07)',
+      borderWidth: 2.5,
+      pointRadius: 5, pointHoverRadius: 7,
+      pointBackgroundColor: '#a78bfa',
+      pointBorderColor: '#0f0f23', pointBorderWidth: 2,
+      tension: 0.35, fill: false,
+      yAxisID: 'yCount',
+      spanGaps: false,
+      datalabels: { display: false },
+    },
+    // 팔로우수 목표
+    {
+      label: '팔로우수 목표',
+      data: MONTHLY_PLAN.followers_target,
+      borderColor: 'rgba(167,139,250,0.45)',
+      backgroundColor: 'transparent',
+      borderWidth: 1.5, borderDash: [5, 4],
+      pointRadius: 3, pointBackgroundColor: 'rgba(167,139,250,0.45)',
+      tension: 0.35, fill: false,
+      yAxisID: 'yCount',
+      spanGaps: true,
+      datalabels: { display: false },
+    },
+    // 편성 CTR 실적
+    {
+      label: '편성 CTR 실적',
+      data: MONTHLY_PLAN.schedCTR_actual,
+      borderColor: '#34d399',
+      backgroundColor: 'transparent',
+      borderWidth: 2.5,
+      pointRadius: 5, pointHoverRadius: 7,
+      pointBackgroundColor: '#34d399',
+      pointBorderColor: '#0f0f23', pointBorderWidth: 2,
+      tension: 0.35, fill: false,
+      yAxisID: 'yPct',
+      spanGaps: false,
+      datalabels: { display: false },
+    },
+    // 편성 CTR 목표
+    {
+      label: '편성 CTR 목표',
+      data: MONTHLY_PLAN.schedCTR_target,
+      borderColor: 'rgba(52,211,153,0.45)',
+      backgroundColor: 'transparent',
+      borderWidth: 1.5, borderDash: [5, 4],
+      pointRadius: 3, pointBackgroundColor: 'rgba(52,211,153,0.45)',
+      tension: 0.35, fill: false,
+      yAxisID: 'yPct',
+      spanGaps: true,
+      datalabels: { display: false },
+    },
+  ];
+
+  // 데이터가 전혀 없는 데이터셋은 숨김
+  datasets.forEach(ds => {
+    if (ds.data.every(v => v === null)) ds.hidden = true;
+  });
+
+  new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: { labels: lbl, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...TOOLTIP_OPTS,
+          callbacks: {
+            label: ctx => {
+              if (ctx.raw == null) return null;
+              const isRate = ctx.dataset.yAxisID === 'yPct';
+              const val = isRate ? ctx.raw + '%' : ctx.raw.toLocaleString();
+              return '  ' + ctx.dataset.label + ': ' + val;
+            },
+            filter: item => item.raw !== null,
+          },
+        },
+        datalabels: { display: false },
+      },
+      scales: {
+        x: {
+          grid: { color: GRID },
+          ticks: { maxRotation: 0, font: { size: 11 } },
+        },
+        yCount: {
+          position: 'left',
+          grid: { color: GRID },
+          ticks: {
+            callback: v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M'
+                        : v >= 1000    ? (v / 1000).toFixed(0) + 'K' : v,
+          },
+          beginAtZero: false,
+        },
+        yPct: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { callback: v => v + '%' },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+
+  // ── 커스텀 범례 ────────────────────────────────
+  const legEl = document.getElementById('kpi-trend-legend');
+  if (!legEl) return;
+  const groups = [
+    { label: '유효시청수', color: '#60a5fa' },
+    { label: '팔로우수',   color: '#a78bfa' },
+    { label: '편성 CTR',  color: '#34d399' },
+  ];
+  legEl.innerHTML = groups.map(g => `
+    <div style="display:flex;align-items:center;gap:6px;font-size:15px;color:var(--text-2)">
+      <span style="display:inline-flex;flex-direction:column;gap:3px">
+        <span style="width:18px;height:2px;background:${g.color};border-radius:1px;display:block"></span>
+        <span style="width:18px;height:1px;background:${g.color};opacity:0.5;border-style:dashed;border-top:1px dashed ${g.color};display:block"></span>
+      </span>
+      <span>${g.label}</span>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════
+//   FUNNEL BAR CHART — 월별 퍼널 지표
+// ════════════════════════════════════════════════
+function buildFunnelChart() {
+  const canvas = document.getElementById('c-funnelBar');
+  if (!canvas) return;
+
+  // 기존 차트 인스턴스 파기
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+
+  // 1~3월 전체 데이터 (MFUNNEL index 1,2,3)
+  const months    = ['26년 1월', '26년 2월', '26년 3월'];
+  const inflow    = [MFUNNEL.inflow[1],    MFUNNEL.inflow[2],    MFUNNEL.inflow[3]];
+  const viewCnt   = [MFUNNEL.viewCount[1], MFUNNEL.viewCount[2], MFUNNEL.viewCount[3]];
+  const effView   = [MFUNNEL.effView[1],   MFUNNEL.effView[2],   MFUNNEL.effView[3]];
+  // 전환율 (유입수 대비)
+  const viewConv = inflow.map((v, i) => v ? +(viewCnt[i] / v * 100).toFixed(2) : null);
+  const effConv  = inflow.map((v, i) => v ? +(effView[i]  / v * 100).toFixed(2) : null);
+
+  const C = {
+    v: '#a78bfa', vBg: 'rgba(167,139,250,0.55)',
+    g: '#34d399', gBg: 'rgba(52,211,153,0.55)',
+    b: '#60a5fa', bBg: 'rgba(96,165,250,0.55)',
+    y: '#fbbf24', yBg: 'rgba(251,191,36,0.55)',
+  };
+
+  const lineBase = (label, data, color, dash) => ({
+    type: 'line', label, data,
+    borderColor: color, backgroundColor: 'transparent',
+    borderWidth: 2, borderDash: dash || [],
+    pointRadius: 5, pointBackgroundColor: color,
+    pointBorderColor: '#0f0f23', pointBorderWidth: 2,
+    tension: 0.3, yAxisID: 'yRate', order: 1,
+  });
+
+  // 숫자 축약 헬퍼 (한글 만 단위)
+  function fmtK(v) {
+    if (v == null) return '';
+    return v >= 100000000 ? (v / 100000000).toFixed(1) + '억'
+         : v >= 10000     ? (v / 10000).toFixed(1) + '만'
+         : String(v);
+  }
+
+  // 막대 datalabel: "레이블\n숫자" 두 줄
+  function barLabel(name, color) {
+    return {
+      display: true,
+      color: 'rgba(255,255,255,0.9)',
+      font: { size: 12, weight: '600' },
+      rotation: 0,
+      anchor: 'center',
+      align: 'center',
+      clip: true,
+      formatter: (val) => name + '\n' + fmtK(val),
+      textAlign: 'center',
+    };
+  }
+
+  new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [
+        { label: '유입수',    data: inflow,  backgroundColor: C.vBg, borderColor: C.v, borderWidth: 1, borderRadius: 4, yAxisID: 'yCount', order: 2,
+          datalabels: barLabel('유입수', C.v) },
+        { label: '시청수',    data: viewCnt, backgroundColor: C.gBg, borderColor: C.g, borderWidth: 1, borderRadius: 4, yAxisID: 'yCount', order: 2,
+          datalabels: barLabel('시청수', C.g) },
+        { label: '유효시청수', data: effView, backgroundColor: C.bBg, borderColor: C.b, borderWidth: 1, borderRadius: 4, yAxisID: 'yCount', order: 2,
+          datalabels: barLabel('유효시청수', C.b) },
+        { ...lineBase('시청전환율', viewConv, C.g, [5, 3]),
+          datalabels: {
+            display: true,
+            formatter: v => '시청전환율\n' + v + '%',
+            color: C.g,
+            font: { size: 12, weight: '700' },
+            anchor: 'end', align: 'top', offset: 6,
+            textAlign: 'center',
+          },
+        },
+        { ...lineBase('유효시청전환율', effConv, C.b, [5, 3]),
+          datalabels: {
+            display: true,
+            formatter: v => '유효시청전환율\n' + v + '%',
+            color: C.b,
+            font: { size: 12, weight: '700' },
+            anchor: 'end', align: 'bottom', offset: 6,
+            textAlign: 'center',
+          },
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false },
+        datalabels: {},
+      },
+      scales: {
+        x: { grid: { color: GRID }, ticks: { maxRotation: 0 } },
+        yCount: {
+          position: 'left',
+          grid: { color: GRID },
+          ticks: {
+            callback: v => v >= 100000000 ? (v / 100000000).toFixed(1) + '억'
+                        : v >= 10000     ? (v / 10000).toFixed(1) + '만' : v,
+          },
+        },
+        yRate: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          min: 0,
+          max: 50,
+          ticks: { callback: v => v + '%' },
+        },
+      },
+    },
+  });
+
+}
+
+// ════════════════════════════════════════════════
+//   도넛: 신규 / 기존 유입 비중
+// ════════════════════════════════════════════════
+function buildInflowDonut(selIdx) {
+  const canvas = document.getElementById('c-inflowDonut');
+  if (!canvas) return;
+
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+
+  const total = MFUNNEL.inflow[selIdx];
+  const nw    = MFUNNEL.inflow_new[selIdx];
+  const old   = MFUNNEL.inflow_old[selIdx];
+
+  const lbl  = MFUNNEL.labels[selIdx];
+
+  if (!total) {
+    const leg = document.getElementById('donut-legend');
+    if (leg) leg.innerHTML = '<span style="color:var(--text-3);font-size:16px">해당 월 데이터 없음</span>';
+    return;
+  }
+
+  const uncat = Math.max(0, total - (nw || 0) - (old || 0));
+  const vals  = [nw || 0, old || 0, uncat];
+  const pcts  = vals.map(v => (v / total * 100).toFixed(1));
+  const colors = ['#34d399', '#60a5fa', '#374151'];
+  const labels = ['신규', '기존', '미분류'];
+
+  new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: vals, backgroundColor: colors, borderColor: '#0f0f23', borderWidth: 3, hoverOffset: 6 }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...TOOLTIP_OPTS,
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.raw.toLocaleString()} (${pcts[ctx.dataIndex]}%)`,
+          },
+        },
+        datalabels: { display: false },
+      },
+    },
+  });
+
+  // 커스텀 범례
+  const leg = document.getElementById('donut-legend');
+  if (leg) {
+    leg.innerHTML = labels.map((l, i) => `
+      <div class="donut-leg-row">
+        <span class="donut-leg-dot" style="background:${colors[i]}"></span>
+        <span style="color:var(--text-2)">${l}</span>
+        <span style="color:var(--text-3);font-size:15px;margin-left:2px">${vals[i].toLocaleString()}</span>
+        <span class="donut-leg-pct" style="color:${colors[i]}">${pcts[i]}%</span>
+      </div>`).join('');
+  }
+}
+
+// ════════════════════════════════════════════════
+//   CSS 퍼널: 단계별 이탈률
+// ════════════════════════════════════════════════
+function buildStageFunnel(selIdx) {
+  const el = document.getElementById('funnel-stage-chart');
+  if (!el) return;
+
+  const inflow  = MFUNNEL.inflow[selIdx];
+  const view    = MFUNNEL.viewCount[selIdx];
+  const eff     = MFUNNEL.effView[selIdx];
+
+
+  if (!inflow) {
+    el.innerHTML = '<p style="text-align:center;color:var(--text-3);padding:40px 0;font-size:16px">해당 월 데이터 없음</p>';
+    return;
+  }
+
+  const stages = [
+    { label: '유입수',    value: inflow, color: '#a78bfa', borderColor: 'rgba(167,139,250,.4)', bg: 'rgba(167,139,250,.12)' },
+    { label: '시청수',    value: view,   color: '#34d399', borderColor: 'rgba(52,211,153,.4)',  bg: 'rgba(52,211,153,.12)'  },
+    { label: '유효시청수', value: eff,   color: '#60a5fa', borderColor: 'rgba(96,165,250,.4)',  bg: 'rgba(96,165,250,.12)'  },
+  ];
+
+  // 각 단계 너비: 유입수 = 100%, 이하 비율에 비례 (min 18%)
+  const widths = stages.map(s => Math.max(18, (s.value / inflow * 100)));
+
+  const maxH = 160; // 막대 최대 높이(px)
+  let html = '<div style="display:flex;align-items:flex-end;gap:0;padding:12px 8px 0">';
+  stages.forEach((s, i) => {
+    const ratio  = s.value / inflow;
+    const barH   = Math.max(32, Math.round(ratio * maxH));
+    const pctStr = i > 0 ? ` (${(ratio * 100).toFixed(1)}%)` : '';
+
+    html += `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <span style="font-size:14px;font-weight:700;color:${s.color};text-align:center;width:100%;display:block">${s.value.toLocaleString()}${pctStr}</span>
+        <div style="width:80%;height:${barH}px;background:${s.bg};border:1px solid ${s.borderColor};border-radius:6px 6px 0 0"></div>
+        <span style="font-size:14px;color:var(--text-2);font-weight:600;padding-bottom:4px">${s.label}</span>
+      </div>`;
+
+    if (i < stages.length - 1) {
+      const dropPct = ((s.value - stages[i + 1].value) / s.value * 100).toFixed(1);
+      html += `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:36px;gap:4px;flex-shrink:0;width:56px">
+        <span style="font-size:12px;color:var(--r);font-weight:700">▶ ${dropPct}%</span>
+        <span style="font-size:11px;color:var(--text-3)">이탈</span>
+      </div>`;
+    }
+  });
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+
+function buildOverview() {
+  buildFunnelChart();
+  buildMonthlySnapshot();
+}
+
+// ════════════════════════════════════════════════
+//   TAB 2: 배너 상세
+// ════════════════════════════════════════════════
+function buildBanner() { buildBannerDetail(); }
+
+function buildBannerDetail() {
+  const d = ONSITE_DETAIL;
+  const selEl = document.getElementById('banner-month-select');
+  const idx   = parseInt(selEl ? selEl.value : '3', 10);
+  const fullLbl = d.labels[idx] || '';
+  const moLbl   = fullLbl.replace(/^\d+년\s*/, '');
+
+  const g    = (key) => (d[key] && d[key][idx] != null) ? d[key][idx] : null;
+  const fmt  = (v)   => v != null ? Number(v).toLocaleString() : '—';
+  const fmtF = (v, dec) => v != null ? Number(v).toFixed(dec) : '—';
+
+  const follTotal  = g('follower_total');
+  const effTotal   = g('effview_total');
+
+  const topPreFoll = g('top_pre_follower');
+  const topEvtFoll = g('top_evt_follower');
+  const spcPreFoll = g('spc_pre_follower');
+  const topPreCh   = g('top_pre_channel');
+  const topEvtCh   = g('top_evt_channel');
+  const spcPreCh   = g('spc_pre_channel');
+  const topPreAvg  = g('top_pre_avg');
+  const topEvtAvg  = g('top_evt_avg');
+
+  const lb2Eff     = g('lb2_eff');
+  const spcLiveEff = g('spc_live_eff');
+  const lb2Ch      = g('lb2_channel');
+  const spcLiveCh  = g('spc_live_channel');
+  const lb2Avg     = g('lb2_avg');
+  const spcLiveAvg = g('spc_live_avg');
+
+  // CTR / 노출량 / 클릭량 (지면별)
+  const promoCtr   = g('promo_ctr');   const promoImp  = g('promo_imp');  const promoClick  = g('promo_click');
+  const topCtr     = g('top_ctr');     const topImp    = g('top_imp');    const topClick    = g('top_click');
+  const lb2Ctr     = g('lb2_ctr');     const lb2Imp    = g('lb2_imp');    const lb2ClickV   = g('lb2_click');
+  const spcCtr     = g('spc_ctr');     const spcImp    = g('spc_imp');    const spcClick    = g('spc_click');
+
+  // ─── 구좌별 성과 요약 (Top Section) ───────────────────────────
+  const prevIdxS  = idx > 1 ? idx - 1 : null;
+  const prevLblS  = prevIdxS != null ? (d.labels[prevIdxS]||'').replace(/^\d+년\s*/,'') : null;
+  const gp        = (key) => (prevIdxS!=null && d[key] && d[key][prevIdxS]!=null) ? d[key][prevIdxS] : null;
+  const cumS      = (key) => { let s=0,a=false; for(let i=1;i<=idx;i++){const v=d[key]&&d[key][i]!=null?d[key][i]:null; if(v!=null){s+=v;a=true;}} return a?s:null; };
+  const cumCTRS   = (ck,mk) => { let c=0,m=0; for(let i=1;i<=idx;i++){const cv=d[ck]&&d[ck][i]!=null?d[ck][i]:null; const mv=d[mk]&&d[mk][i]!=null?d[mk][i]:null; if(cv!=null&&mv!=null){c+=cv;m+=mv;}} return m>0?(c/m*100):null; };
+  const cumRgS    = idx<=1 ? moLbl : '1~'+idx+'월 누계';
+  const fR2       = (v) => v!=null ? v.toFixed(2)+'%' : '—';
+  const fN2       = (v,u) => v!=null ? Number(v).toLocaleString()+(u||'') : '—';
+  const arwS      = (cur,pre,isR) => {
+    if(cur==null||pre==null) return '';
+    const thr = isR ? 0.05 : Math.max(pre*0.02,1);
+    const df = cur-pre;
+    if(Math.abs(df)<=thr) return '<span style="color:#64748b">→</span>';
+    return df>0 ? '<span style="color:#34d399;font-weight:700">↑</span>' : '<span style="color:#fb7185;font-weight:700">↓</span>';
+  };
+  const sBdg = (lv) => {
+    const m = {'핵심':['rgba(52,211,153,.15)','#34d399','rgba(52,211,153,.4)'],'유지':['rgba(96,165,250,.15)','#60a5fa','rgba(96,165,250,.4)'],'주의':['rgba(251,191,36,.15)','#fbbf24','rgba(251,191,36,.4)'],'중단':['rgba(251,113,133,.15)','#fb7185','rgba(251,113,133,.4)']};
+    const [bg,co,bo] = m[lv]||m['유지'];
+    return `<div style="background:${bg};color:${co};border:2px solid ${bo};border-radius:10px;padding:8px 4px;font-size:14px;font-weight:800;text-align:center;width:52px">${lv}</div>`;
+  };
+  const ctrStS  = (cur,pre) => { if(cur==null)return'주의'; if(cur>=4)return'핵심'; if(cur>=2)return(pre==null||cur>=pre*0.97)?'유지':'주의'; return(cur>=1.5&&pre!=null&&cur>=pre)?'유지':'주의'; };
+  const flStS   = (cur,pre,cum) => { if(cum==null||cum<30)return'중단'; if(cur!=null&&pre!=null){const r=(cur-pre)/Math.max(pre,1); return r>=0.05?'핵심':r>=-0.30?'유지':'주의';} return cum>=200?'유지':cum>=50?'주의':'중단'; };
+  const efStS   = (cur,pre,cum) => { if(cum==null||cum<50)return'중단'; if(cur!=null&&pre!=null){const r=(cur-pre)/Math.max(pre,1); return r>=0.10?'핵심':r>=-0.20?'유지':'주의';} return cum>=500?'유지':'주의'; };
+
+  const vCrd = ({title,color,rows,cumMain,cumSubs,status,note}) => {
+    const rHtml = rows.map(r => {
+      const cv = r.isR ? fR2(r.cur) : fN2(r.cur, r.unit);
+      const hasVal = r.cur != null;
+      return `<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:13px;color:var(--text-3)">${r.label}</span>
+        <span style="font-size:15px;color:${hasVal?'var(--text-1)':'var(--text-3)'};font-weight:700">${cv}</span>
+      </div>`;
+    }).join('');
+    const cmV = cumMain.isR ? fR2(cumMain.val) : fN2(cumMain.val, cumMain.unit);
+    const subH = (cumSubs||[]).map(s => {
+      const sv = s.isR ? fR2(s.val) : fN2(s.val, s.unit);
+      return `<div style="font-size:12px;color:var(--text-3);margin-top:3px">${s.label} <strong style="color:var(--text-2)">${sv}</strong></div>`;
+    }).join('');
+    return `<div class="card fade" style="padding:0;overflow:hidden;border-top:3px solid ${color}">
+      <div style="padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:15px;font-weight:700;color:var(--text-1)">${title}</span>
+        <span style="font-size:11px;color:var(--text-3)"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 68px">
+        <div style="padding:12px 15px;border-right:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);letter-spacing:.8px;margin-bottom:6px"></div>
+          ${rHtml}
+        </div>
+        <div style="padding:12px 15px;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);letter-spacing:.8px;margin-bottom:5px">${cumRgS}</div>
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:1px">${cumMain.label}</div>
+          <div style="font-size:24px;font-weight:800;color:${color};line-height:1.2">${cmV}</div>
+          ${subH}
+        </div>
+        <div style="padding:10px 6px;display:flex;align-items:center;justify-content:center">
+          ${sBdg(status)}
+        </div>
+      </div>
+      ${note?`<div style="padding:7px 15px;border-top:1px solid var(--border);font-size:12px;color:var(--text-3);background:rgba(255,255,255,.02)">${note}</div>`:''}
+    </div>`;
+  };
+
+  // ── 동적 인사이트 노트 ──────────────────────────────────────────
+  const _pct = (c,p) => (c!=null&&p!=null&&p!==0) ? (c-p)/Math.abs(p)*100 : null;
+  const _sf1 = v => v!=null ? (v>0?'+':'')+v.toFixed(1) : null;
+
+  const noteTop = (() => {
+    const dc = _pct(topCtr, gp('top_ctr'));
+    const di = _pct(topImp, gp('top_imp'));
+    if(dc==null||di==null) return '최대 노출 규모 지면 — CTR 안정 유지 목표, 노출 볼륨 확보가 클릭 성장의 핵심 레버';
+    if(Math.abs(dc)<0.05) {
+      if(di<-20) return `CTR ${topCtr}% 유지 속 노출 ${_sf1(di)}% 감소 — 클릭 볼륨 하락은 소재 아닌 노출량 감소 기인, 지면 노출 확대 우선 필요`;
+      if(di>20)  return `CTR ${topCtr}% 유지 · 노출 ${_sf1(di)}% 증가 — 클릭 볼륨 비례 성장 확인, 소재 현행 유지 권고`;
+      return `CTR ${topCtr}% 안정 유지 — 대규모 노출 지면 특성상 소재 효율 지속 모니터링 권고`;
+    }
+    if(dc>0) return `CTR ${_sf1(dc)}%p 개선 · 노출 ${_sf1(di)}% 변화 — 클릭 전환 효율 상승, 소재 현행 유지 권고`;
+    return `CTR ${_sf1(dc)}%p 하락 · 노출 ${_sf1(di)}% 변화 — 노출 감소 외 소재 효율 저하 가능성, 크리에이티브 점검 필요`;
+  })();
+
+  const noteLB2 = (() => {
+    const dc = _pct(lb2Ctr, gp('lb2_ctr'));
+    const di = _pct(lb2Imp, gp('lb2_imp'));
+    if(dc==null||di==null) return '전 지면 최고 CTR 지면 — 노출 확대 시 클릭 볼륨 비례 증가 기대, 소재 현행 유지';
+    if(di>0 && dc>=-0.05) return `노출 ${_sf1(di)}% 확대 · CTR ${lb2Ctr}% 유지 — 클릭 볼륨 동반 성장, 전 지면 최고 효율 지속 확인`;
+    if(di>0 && dc<-0.05)  return `노출 ${_sf1(di)}% 증가에도 CTR ${_sf1(dc)}%p 하락 — 소재 리프레시로 효율 반등 검토 필요`;
+    if(di<=0 && dc>=-0.05) return `노출 ${_sf1(di)}% 감소로 클릭 볼륨 축소 — CTR ${lb2Ctr}% 최고 효율 유지, 노출 볼륨 확보가 클릭 성장 핵심 레버`;
+    return `노출·CTR 동반 하락 — 소재 점검 및 슬롯 노출 확대 병행 필요`;
+  })();
+
+  const notePromo = (() => {
+    const dc = _pct(promoCtr, gp('promo_ctr'));
+    const di = _pct(promoImp, gp('promo_imp'));
+    if(dc==null||di==null) return 'CTR 목표 2% 미달 — 노출 확대 병행 시 클릭 볼륨 성장 여지, 소재 집중 운영 권고';
+    const over2 = promoCtr!=null && promoCtr>=2;
+    if(over2 && dc>0)  return `CTR 목표 2% 돌파 · ${_sf1(dc)}%p 개선 — 노출 ${_sf1(di)}% 확대 속 클릭 전환 효율 동반 상승`;
+    if(over2)          return `CTR 목표 2% 유지 — 노출 ${_sf1(di)}% 변화, 소재 다변화로 추가 CTR 개선 여지`;
+    if(dc>0) return `CTR ${_sf1(dc)}%p 개선 중(현 ${promoCtr}%) — 노출 ${_sf1(di)}% 확대에 클릭 비례 증가, 목표 2% 달성 위해 소재 효율 강화 필요`;
+    return `CTR ${_sf1(dc)}%p 하락(현 ${promoCtr}%) — 노출 대비 클릭 전환 저조, 소재·슬롯 점검 및 집중 운영 필요`;
+  })();
+
+  const noteSpcA = (() => {
+    const dc = _pct(g('spc_a_foll'), gp('spc_a_foll'));
+    if(dc==null) return '특수배너 내 팔로우 1위 — 소재 효율 모니터링 지속 권고';
+    return dc<0
+      ? `팔로우 ${_sf1(dc)}% 감소 — 특수배너 내 1위 유지 중이나 감소세 지속, 소재 교체 및 노출 구좌 점검 필요`
+      : `팔로우 ${_sf1(dc)}% 증가 — 특수배너 내 팔로우 최다 지면 위상 강화, 소재 현행 유지 권고`;
+  })();
+
+  const noteSpcB = (() => {
+    const cur = g('spc_b_foll'), pre = gp('spc_b_foll');
+    if(cur==null) return '팔로우·유효시청 미집계 — 슬롯 운영 실효성 점검 필요';
+    if(cur===0) return '팔로우 0 — 노출 대비 전환 전무, 슬롯 재배정 또는 소재 전면 교체 권고';
+    const dc = _pct(cur, pre);
+    if(pre===0||pre==null) return `팔로우 ${cur}명 첫 집계 — 절대값 미미, 유효시청 미집계 상태로 종합 성과 평가 어려움`;
+    return dc<0
+      ? `팔로우 ${_sf1(dc)}% 감소(현 ${cur}명) — 성과 낮은 구좌, 슬롯 재배정 우선 검토`
+      : `팔로우 ${_sf1(dc)}% 증가(현 ${cur}명) — 절대값 낮아 영향력 미미, 추가 소재 테스트 필요`;
+  })();
+
+  const noteSpcC = (() => {
+    const df = _pct(g('spc_c_foll'), gp('spc_c_foll'));
+    const de = _pct(g('spc_c_eff'),  gp('spc_c_eff'));
+    if(de==null&&df==null) return '팔로우·유효시청 동시 보유 구좌 — 데이터 누적 후 소재 효율 평가 권고';
+    if(de!=null&&df!=null) {
+      if(de>0&&df<0) return `팔로우 ${_sf1(df)}% 감소 · 유효시청 ${_sf1(de)}% 급등 — 시청 유도 특화 소재, 팔로우 전환 촉진 CTA 보강 필요`;
+      if(de>0&&df>=0) return `유효시청 ${_sf1(de)}% · 팔로우 ${_sf1(df)}% 동반 성장 — 소재 효율 최고 상태, 현행 유지 권고`;
+      if(de<0&&df<0) return `팔로우 ${_sf1(df)}% · 유효시청 ${_sf1(de)}% 동반 감소 — 소재 점검 및 노출 구좌 효율 재검토`;
+      return `유효시청 ${_sf1(de)}% 하락 — 팔로우 변화(${_sf1(df)}%) 고려 시 소재 리프레시 검토 필요`;
+    }
+    if(de!=null) return de>0 ? `유효시청 ${_sf1(de)}% 증가 — 시청 유입 성장, 팔로우 전환 강화 소재 보강 권고` : `유효시청 ${_sf1(de)}% 감소 — 소재 점검 필요`;
+    return df!=null&&df>0 ? `팔로우 ${_sf1(df)}% 증가 — 팔로우 전환 개선, 유효시청 병행 확인 필요` : `팔로우 ${_sf1(df)}% 감소 — 소재 효율 저하, 교체 검토`;
+  })();
+
+  const noteSpcD = (() => {
+    const de = _pct(g('spc_d_eff'), gp('spc_d_eff'));
+    if(de==null) return '유효시청 추이 모니터링 중 — 팔로우 미집계 지면, 시청 지표 중심 성과 관리';
+    return de>0
+      ? `유효시청 ${_sf1(de)}% 증가 — 시청 유입 성장세 확인, 팔로우 데이터 병행 집계 시 종합 평가 가능`
+      : `유효시청 ${_sf1(de)}% 감소 — 팔로우 미집계 상태에서 시청 지표마저 하락, 소재·노출 구좌 점검 필요`;
+  })();
+  // ────────────────────────────────────────────────────────────────
+
+  const cardLB2   = vCrd({ title:'라이브 2번 배너', color:'var(--b)',
+    rows:[{label:'CTR',cur:lb2Ctr,pre:gp('lb2_ctr'),isR:true},{label:'클릭',cur:lb2ClickV,pre:gp('lb2_click'),isR:false,unit:'건'},{label:'노출',cur:lb2Imp,pre:gp('lb2_imp'),isR:false,unit:''}],
+    cumMain:{label:'평균 CTR',val:cumCTRS('lb2_click','lb2_imp'),isR:true},
+    cumSubs:[{label:'클릭',val:cumS('lb2_click'),unit:'건',isR:false},{label:'노출',val:cumS('lb2_imp'),unit:'',isR:false}],
+    status:ctrStS(lb2Ctr,gp('lb2_ctr')), note:noteLB2 });
+
+  const cardTop   = vCrd({ title:'톱배너(1번)', color:'var(--g)',
+    rows:[{label:'CTR',cur:topCtr,pre:gp('top_ctr'),isR:true},{label:'클릭',cur:topClick,pre:gp('top_click'),isR:false,unit:'건'},{label:'노출',cur:topImp,pre:gp('top_imp'),isR:false,unit:''}],
+    cumMain:{label:'평균 CTR',val:cumCTRS('top_click','top_imp'),isR:true},
+    cumSubs:[{label:'클릭',val:cumS('top_click'),unit:'건',isR:false},{label:'노출',val:cumS('top_imp'),unit:'',isR:false}],
+    status:ctrStS(topCtr,gp('top_ctr')), note:noteTop });
+
+  const cardPromo = vCrd({ title:'프로모션탭', color:'var(--v)',
+    rows:[{label:'CTR',cur:promoCtr,pre:gp('promo_ctr'),isR:true},{label:'클릭',cur:promoClick,pre:gp('promo_click'),isR:false,unit:'건'},{label:'노출',cur:promoImp,pre:gp('promo_imp'),isR:false,unit:''}],
+    cumMain:{label:'평균 CTR',val:cumCTRS('promo_click','promo_imp'),isR:true},
+    cumSubs:[{label:'클릭',val:cumS('promo_click'),unit:'건',isR:false},{label:'노출',val:cumS('promo_imp'),unit:'',isR:false}],
+    status:ctrStS(promoCtr,gp('promo_ctr')), note:notePromo });
+
+  const cumSpcA   = cumS('spc_a_foll');
+  const cardSpcA  = vCrd({ title:'특수배너 A', color:'var(--y)',
+    rows:[{label:'팔로우',cur:g('spc_a_foll'),pre:gp('spc_a_foll'),isR:false,unit:'명'}],
+    cumMain:{label:'누계 팔로우',val:cumSpcA,unit:'명',isR:false}, cumSubs:[],
+    status:flStS(g('spc_a_foll'),gp('spc_a_foll'),cumSpcA), note:noteSpcA });
+
+  const cumSpcCE  = cumS('spc_c_eff');
+  const cardSpcC  = vCrd({ title:'특수배너 C', color:'var(--g)',
+    rows:[{label:'팔로우',cur:g('spc_c_foll'),pre:gp('spc_c_foll'),isR:false,unit:'명'},{label:'유효시청',cur:g('spc_c_eff'),pre:gp('spc_c_eff'),isR:false,unit:'명'}],
+    cumMain:{label:'누계 유효시청',val:cumSpcCE,unit:'명',isR:false},
+    cumSubs:[{label:'팔로우',val:cumS('spc_c_foll'),unit:'명',isR:false}],
+    status:efStS(g('spc_c_eff'),gp('spc_c_eff'),cumSpcCE), note:noteSpcC });
+
+  const cumSpcDE  = cumS('spc_d_eff');
+  const cardSpcD  = vCrd({ title:'특수배너 D', color:'var(--b)',
+    rows:[{label:'유효시청',cur:g('spc_d_eff'),pre:gp('spc_d_eff'),isR:false,unit:'명'}],
+    cumMain:{label:'누계 유효시청',val:cumSpcDE,unit:'명',isR:false}, cumSubs:[],
+    status:efStS(g('spc_d_eff'),gp('spc_d_eff'),cumSpcDE), note:noteSpcD });
+
+  const cumSpcBF  = cumS('spc_b_foll');
+  const cardSpcB  = vCrd({ title:'특수배너 B', color:'var(--r)',
+    rows:[{label:'팔로우',cur:g('spc_b_foll'),pre:gp('spc_b_foll'),isR:false,unit:'명'}],
+    cumMain:{label:'누계 팔로우',val:cumSpcBF,unit:'명',isR:false},
+    cumSubs:[{label:'유효시청',val:0,unit:'명',isR:false}],
+    status:flStS(g('spc_b_foll'),gp('spc_b_foll'),cumSpcBF), note:noteSpcB });
+
+  const topSectionHtml = `
+    <div class="sec-label-lg">구좌별 성과 요약</div>
+    <div class="g3">${cardTop}${cardLB2}${cardPromo}</div>
+    <div style="margin-top:20px;margin-bottom:12px;font-size:17px;font-weight:700;color:var(--text-2)">특수배너 구좌별</div>
+    <div class="g4">${cardSpcA}${cardSpcC}${cardSpcD}${cardSpcB}</div>
+    <div class="gap-lg"></div>
+  `;
+
+  const follVals = [topPreFoll, topEvtFoll, spcPreFoll].filter(v => v != null);
+  const maxFoll  = follVals.length ? Math.max(...follVals) : 1;
+  const effVals  = [lb2Eff, spcLiveEff].filter(v => v != null);
+  const maxEff   = effVals.length ? Math.max(...effVals) : 1;
+
+  const barFoll = (v) => v != null ? Math.round(v / maxFoll * 100) : 0;
+  const barEff  = (v) => v != null ? Math.round(v / maxEff  * 100) : 0;
+
+  const badgeHigh = `<span style="background:rgba(52,211,153,.12);color:var(--g);border:1px solid rgba(52,211,153,.3);border-radius:6px;padding:3px 10px;font-size:13px;font-weight:600">🟢 High</span>`;
+  const badgeMid  = `<span style="background:rgba(251,191,36,.15);color:var(--y);border:1px solid rgba(251,191,36,.3);border-radius:6px;padding:3px 10px;font-size:13px;font-weight:600">🟡 Average</span>`;
+  const badgeLow  = `<span style="background:rgba(251,113,133,.12);color:var(--r);border:1px solid rgba(251,113,133,.3);border-radius:6px;padding:3px 10px;font-size:13px;font-weight:600">🔴 Low</span>`;
+  const badgeNo   = `<span style="background:rgba(75,85,99,.2);color:var(--text-3);border:1px solid rgba(75,85,99,.3);border-radius:6px;padding:3px 10px;font-size:13px;font-weight:600">데이터 없음</span>`;
+
+  const statusFoll = (v) => {
+    if (v == null) return badgeNo;
+    const pct = v / maxFoll * 100;
+    return pct >= 70 ? badgeHigh : pct >= 30 ? badgeMid : badgeLow;
+  };
+  const statusEff = (v) => {
+    if (v == null) return badgeNo;
+    const pct = v / maxEff * 100;
+    return pct >= 70 ? badgeHigh : pct >= 30 ? badgeMid : badgeLow;
+  };
+
+  const follPairs = [
+    { val: topEvtFoll, lbl: '톱배너_이벤트페이지' },
+    { val: topPreFoll, lbl: '톱배너_사전예고' },
+    { val: spcPreFoll, lbl: '특수배너_예고/이벤트' },
+  ].filter(p => p.val != null).sort((a, b) => b.val - a.val);
+  const follBest = follPairs[0] || null;
+
+  const effPairs = [
+    { val: lb2Eff,     lbl: '라이브 2번 배너' },
+    { val: spcLiveEff, lbl: '특수배너_라이브' },
+  ].filter(p => p.val != null).sort((a, b) => b.val - a.val);
+  const effBest = effPairs[0] || null;
+
+  const ctrCell = (ctr) => {
+    if (ctr == null) return `<td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>`;
+    const c = ctr >= 4 ? 'var(--g)' : ctr >= 2 ? 'var(--y)' : 'var(--r)';
+    return `<td style="padding:14px 12px;text-align:center;font-weight:700;color:${c}">${ctr.toFixed(2)}%</td>`;
+  };
+
+  const follBarCell = (v, color) => {
+    if (v == null) return `<td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>`;
+    const w = barFoll(v);
+    const hi = w === 100;
+    return `<td style="padding:14px 12px"><div style="display:flex;align-items:center;gap:8px">
+      <div style="flex:1;height:6px;background:var(--surface-2);border-radius:3px"><div style="width:${w}%;height:100%;background:${color};border-radius:3px"></div></div>
+      <span style="color:${hi ? color : 'var(--text-1)'};font-weight:${hi ? 700 : 600};min-width:52px;text-align:right">${fmt(v)}명</span>
+    </div></td>`;
+  };
+  const effBarCell = (v, color) => {
+    if (v == null) return `<td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>`;
+    const w = barEff(v);
+    const hi = w === 100;
+    return `<td style="padding:14px 12px"><div style="display:flex;align-items:center;gap:8px">
+      <div style="flex:1;height:6px;background:var(--surface-2);border-radius:3px"><div style="width:${w}%;height:100%;background:${color};border-radius:3px"></div></div>
+      <span style="color:${hi ? color : 'var(--text-1)'};font-weight:${hi ? 700 : 600};min-width:52px;text-align:right">${fmt(v)}명</span>
+    </div></td>`;
+  };
+
+  // Strategy cards
+  const strat1 = topEvtFoll != null
+    ? `<div class="card" style="padding:22px 24px;border-top:3px solid var(--g)">
+        <div style="font-size:16px;font-weight:700;color:var(--g);margin-bottom:10px">① 톱배너 이벤트페이지 팔로우 핵심 지면</div>
+        <div style="font-size:15px;color:var(--text-2);line-height:1.8">
+          ${moLbl} 팔로우 ${fmt(topEvtFoll)}명으로 전 지면 최다, 방송 ${fmt(topEvtCh)}건 운영.<br>
+          평균 ${fmtF(topEvtAvg,2)}명/방송으로 팔로우 유입 효율이 가장 높아 <strong style="color:var(--text-1)">이벤트페이지 노출 비중 확대</strong>가 팔로우 성장의 핵심 레버.
+        </div>
+      </div>`
+    : `<div class="card" style="padding:22px 24px;border-top:3px solid var(--text-3)">
+        <div style="font-size:16px;font-weight:700;color:var(--text-3);margin-bottom:10px">① 톱배너 이벤트페이지</div>
+        <div style="font-size:15px;color:var(--text-3);line-height:1.8">해당 월 데이터를 집계 중입니다.</div>
+      </div>`;
+
+  const strat2 = lb2Eff != null
+    ? (() => {
+        const lb2Pct = effTotal ? Math.round(lb2Eff / effTotal * 100) : null;
+        return `<div class="card" style="padding:22px 24px;border-top:3px solid var(--b)">
+          <div style="font-size:16px;font-weight:700;color:var(--b);margin-bottom:10px">② 라이브 2번 배너 유효시청 핵심 지면</div>
+          <div style="font-size:15px;color:var(--text-2);line-height:1.8">
+            ${moLbl} 유효시청자 ${fmt(lb2Eff)}명으로 전 지면 압도적 1위, 평균 ${fmtF(lb2Avg,0)}명/방송.<br>
+            ${lb2Pct != null ? `전체 유효시청의 <strong style="color:var(--text-1)">${lb2Pct}% 비중</strong>을 차지하며 시청 유입의 핵심 지면으로 확인.` : '시청 유입의 핵심 지면으로 운영 비중 유지 필요.'}
+          </div>
+        </div>`;
+      })()
+    : `<div class="card" style="padding:22px 24px;border-top:3px solid var(--text-3)">
+        <div style="font-size:16px;font-weight:700;color:var(--text-3);margin-bottom:10px">② 라이브 2번 배너</div>
+        <div style="font-size:15px;color:var(--text-3);line-height:1.8">해당 월 데이터를 집계 중입니다.</div>
+      </div>`;
+
+  const strat3 = `<div class="card" style="padding:22px 24px;border-top:3px solid var(--r)">
+    <div style="font-size:16px;font-weight:700;color:var(--r);margin-bottom:10px">③ 사전예고·특수배너 라이브 효율 개선 필요</div>
+    <div style="font-size:15px;color:var(--text-2);line-height:1.8">
+      ${topPreFoll != null ? `톱배너_사전예고(${fmt(topPreFoll)}명, ${fmt(topPreCh)}방송)` : '톱배너_사전예고'}와
+      ${spcLiveEff != null ? `특수배너_라이브(유효시청 ${fmt(spcLiveEff)}명, ${fmt(spcLiveCh)}방송)` : '특수배너_라이브'}는 상대적으로 낮은 효율.<br>
+      <strong style="color:var(--text-1)">노출 일정 최적화</strong>와 크리에이티브 개선으로 지면 효율 향상 검토.
+    </div>
+  </div>`;
+
+  // ── 진행률 바 업데이트 ──────────────────────────────────────
+  (function() {
+    var selMonthDays = (MFUNNEL.monthDays && MFUNNEL.monthDays[idx]) ? MFUNNEL.monthDays[idx] : null;
+    if (!selMonthDays) return;
+    var selLabels = ['25년 12월','26년 1월','26년 2월','26년 3월','26년 4월','26년 5월','26년 6월'];
+    var selMonthStr = selLabels[idx] || '';
+    var today = new Date();
+    var todayDay = today.getDate();
+    var todayYear = today.getFullYear();
+    var todayMonth = today.getMonth();
+    var curMonthStr = (todayYear === 2026 ? '26년 ' : '25년 ') + (todayMonth + 1) + '월';
+    var isCurrentMonth = (selMonthStr === curMonthStr);
+    var timePct = isCurrentMonth
+      ? Math.round(todayDay / selMonthDays * 100)
+      : (idx < 3 ? 100 : null);
+    if (timePct === null) return;
+    var displayDay2 = isCurrentMonth ? todayDay : selMonthDays;
+    var selMonNum = idx === 0 ? 12 : idx;
+    var colour = timePct >= 90 ? 'var(--r)' : timePct >= 70 ? 'var(--y)' : 'var(--b)';
+    var labelEl = document.getElementById('bsp-label');
+    var barEl   = document.getElementById('bsp-bar');
+    var pctEl   = document.getElementById('bsp-pct');
+    var daysEl  = document.getElementById('bsp-days');
+    var wrapEl  = document.getElementById('banner-section-pacing');
+    if (!wrapEl) return;
+    labelEl.textContent    = selMonNum + '월 일자 진행률';
+    barEl.style.width      = timePct + '%';
+    barEl.style.background = colour;
+    pctEl.style.color      = colour;
+    pctEl.textContent      = timePct + '%';
+    daysEl.textContent     = displayDay2 + ' / ' + selMonthDays + '일';
+    wrapEl.style.display   = 'flex';
+  })();
+
+  const wrap = document.getElementById('banner-detail-wrap');
+  if (!wrap) return;
+
+  wrap.innerHTML = `
+    ${topSectionHtml}
+    <div class="sec-label-lg">지면별 월 평균 CTR</div>
+    <div class="g4">
+      <div class="card kpi v fade">
+        <div class="kpi-label">프로모션탭</div>
+        <div class="kpi-main">
+          ${promoCtr != null
+            ? `<span class="kpi-val">${promoCtr}</span><span class="kpi-unit">%</span>`
+            : `<span class="kpi-val" style="font-size:28px;color:var(--text-3)">—</span>`}
+        </div>
+        <div class="kpi-foot" style="color:var(--text-3);font-size:13px">
+          노출량 ${promoImp != null ? fmt(promoImp) : '—'}&nbsp;&nbsp;클릭량 ${promoClick != null ? fmt(promoClick) : '—'}
+        </div>
+      </div>
+      <div class="card kpi g fade">
+        <div class="kpi-label">톱배너</div>
+        <div class="kpi-main">
+          ${topCtr != null
+            ? `<span class="kpi-val">${topCtr}</span><span class="kpi-unit">%</span>`
+            : `<span class="kpi-val" style="font-size:28px;color:var(--text-3)">—</span>`}
+        </div>
+        <div class="kpi-foot" style="color:var(--text-3);font-size:13px">
+          노출량 ${topImp != null ? fmt(topImp) : '—'}&nbsp;&nbsp;클릭량 ${topClick != null ? fmt(topClick) : '—'}
+        </div>
+      </div>
+      <div class="card kpi b fade">
+        <div class="kpi-label">라이브 2번 배너</div>
+        <div class="kpi-main">
+          ${lb2Ctr != null
+            ? `<span class="kpi-val">${lb2Ctr}</span><span class="kpi-unit">%</span>`
+            : `<span class="kpi-val" style="font-size:28px;color:var(--text-3)">—</span>`}
+        </div>
+        <div class="kpi-foot" style="color:var(--text-3);font-size:13px">
+          노출량 ${lb2Imp != null ? fmt(lb2Imp) : '—'}&nbsp;&nbsp;클릭량 ${lb2ClickV != null ? fmt(lb2ClickV) : '—'}
+        </div>
+      </div>
+      <div class="card kpi c fade">
+        <div class="kpi-label">특수배너</div>
+        <div class="kpi-main">
+          ${spcCtr != null
+            ? `<span class="kpi-val">${spcCtr}</span><span class="kpi-unit">%</span>`
+            : `<span class="kpi-val" style="font-size:28px;color:var(--text-3)">—</span>`}
+        </div>
+        <div class="kpi-foot" style="color:var(--text-3);font-size:13px">
+          노출량 ${spcImp != null ? fmt(spcImp) : '—'}&nbsp;&nbsp;클릭량 ${spcClick != null ? fmt(spcClick) : '—'}
+        </div>
+      </div>
+    </div>
+
+    <div class="gap-lg"></div>
+
+    <div class="sec-label-lg">지면별 팔로우 · 유효시청 현황 <span style="font-size:14px;font-weight:400;color:var(--text-3);margin-left:8px">${fullLbl} 기준</span></div>
+    <div class="card" style="padding:22px 24px;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:15.5px">
+        <colgroup>
+          <col style="width:13%"><col style="width:14%"><col style="width:20%">
+          <col style="width:20%"><col style="width:10%"><col style="width:10%"><col style="width:13%">
+        </colgroup>
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:10px 12px;text-align:left;color:var(--text-3);font-weight:600;font-size:14px">지면</th>
+            <th style="padding:10px 12px;text-align:left;color:var(--text-3);font-weight:600;font-size:14px">하위 구분</th>
+            <th style="padding:10px 12px;text-align:center;color:var(--text-3);font-weight:600;font-size:14px">팔로우수</th>
+            <th style="padding:10px 12px;text-align:center;color:var(--text-3);font-weight:600;font-size:14px">유효시청자</th>
+            <th style="padding:10px 12px;text-align:center;color:var(--text-3);font-weight:600;font-size:14px">방송수</th>
+            <th style="padding:10px 12px;text-align:center;color:var(--text-3);font-weight:600;font-size:14px">CTR</th>
+            <th style="padding:10px 12px;text-align:center;color:var(--text-3);font-weight:600;font-size:14px">효율 상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:14px 12px;font-weight:700;color:var(--text-1)">프로모션탭</td>
+            <td style="padding:14px 12px;color:var(--text-3)">—</td>
+            <td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>
+            <td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>
+            <td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>
+            ${ctrCell(promoCtr)}
+            <td style="padding:14px 12px;text-align:center">${promoCtr != null ? (promoCtr >= 4 ? badgeHigh : promoCtr >= 2 ? badgeMid : badgeLow) : badgeNo}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:14px 12px;font-weight:700;color:var(--text-1)">톱배너</td>
+            <td style="padding:14px 12px;color:var(--text-2);font-weight:500">사전예고</td>
+            ${follBarCell(topPreFoll, 'var(--r)')}
+            <td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>
+            <td style="padding:14px 12px;text-align:center;color:var(--text-2);font-weight:600">${topPreCh != null ? fmt(topPreCh)+'건' : '—'}</td>
+            <td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>
+            <td style="padding:14px 12px;text-align:center">${statusFoll(topPreFoll)}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:14px 12px;color:var(--text-3);font-size:13px">전체 ${topCtr != null ? '<span style="color:var(--text-2);font-weight:600">'+topCtr.toFixed(2)+'%</span>' : ''}</td>
+            <td style="padding:14px 12px;color:var(--text-2);font-weight:500">이벤트페이지</td>
+            ${follBarCell(topEvtFoll, 'var(--g)')}
+            <td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>
+            <td style="padding:14px 12px;text-align:center;color:var(--text-2);font-weight:600">${topEvtCh != null ? fmt(topEvtCh)+'건' : '—'}</td>
+            ${ctrCell(topCtr)}
+            <td style="padding:14px 12px;text-align:center">${topCtr != null ? (topCtr >= 4 ? badgeHigh : topCtr >= 2 ? badgeMid : badgeLow) : statusFoll(topEvtFoll)}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);background:rgba(96,165,250,.04)">
+            <td style="padding:14px 12px;font-weight:700;color:var(--text-1)">라이브 2번 배너</td>
+            <td style="padding:14px 12px;color:var(--text-3)">—</td>
+            <td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>
+            ${effBarCell(lb2Eff, 'var(--b)')}
+            <td style="padding:14px 12px;text-align:center;color:var(--text-2);font-weight:600">${lb2Ch != null ? fmt(lb2Ch)+'건' : '—'}</td>
+            ${ctrCell(lb2Ctr)}
+            <td style="padding:14px 12px;text-align:center">${lb2Ctr != null ? (lb2Ctr >= 4 ? badgeHigh : lb2Ctr >= 2 ? badgeMid : badgeLow) : statusEff(lb2Eff)}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:14px 12px;font-weight:700;color:var(--text-1)">특수배너</td>
+            <td style="padding:14px 12px;color:var(--text-2);font-weight:500">라이브</td>
+            <td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>
+            ${effBarCell(spcLiveEff, 'var(--r)')}
+            <td style="padding:14px 12px;text-align:center;color:var(--text-2);font-weight:600">${spcLiveCh != null ? fmt(spcLiveCh)+'건' : '—'}</td>
+            ${ctrCell(spcCtr)}
+            <td style="padding:14px 12px;text-align:center">${spcCtr != null ? (spcCtr >= 4 ? badgeHigh : spcCtr >= 2 ? badgeMid : badgeLow) : statusEff(spcLiveEff)}</td>
+          </tr>
+          <tr>
+            <td style="padding:14px 12px;color:var(--text-3)"></td>
+            <td style="padding:14px 12px;color:var(--text-2);font-weight:500">예고/이벤트</td>
+            ${follBarCell(spcPreFoll, 'var(--y)')}
+            <td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>
+            <td style="padding:14px 12px;text-align:center;color:var(--text-2);font-weight:600">${g('spc_pre_channel') != null ? fmt(g('spc_pre_channel'))+'건' : '—'}</td>
+            <td style="padding:14px 12px;text-align:center;color:var(--text-3)">—</td>
+            <td style="padding:14px 12px;text-align:center">${statusFoll(spcPreFoll)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:14px;font-size:13px;color:var(--text-3)">* 팔로우수 바 기준: 최대값 ${maxFoll.toLocaleString()}명 = 100% &nbsp;|&nbsp; 유효시청자 바 기준: 최대값 ${maxEff.toLocaleString()}명 = 100% &nbsp;|&nbsp; CTR 색상: 4%↑ 초록 · 2~4% 노랑 · 2%↓ 빨강</div>
+    </div>
+
+    <div class="gap-lg"></div>
+
+    <div class="sec-label-lg">지면 운영 최적화 전략</div>
+    <div class="g3">${strat1}${strat2}${strat3}</div>
+  `;
+}
+
+
+// ════════════════════════════════════════════════
+//   TAB 3: 라이브배너
+// ════════════════════════════════════════════════
+function buildLive() {
+  // 구좌 select 동기화 + desc 업데이트
+  const selEl = document.getElementById('lb-slot-select');
+  if (selEl) selEl.value = activeLBSlot;
+  const slotName = activeLBSlot === 'all' ? '전체 집계' : `${activeLBSlot}번 구좌`;
+  const slotHasData = activeLBSlot === 'all' ||
+    (LB.slots[activeLBSlot] && LB.slots[activeLBSlot].ctr.some(v => v !== null));
+  const descEl = document.getElementById('lb-slot-desc');
+  if (descEl) descEl.textContent = slotHasData
+    ? `${slotName} 기준`
+    : `${slotName} — 구좌별 데이터는 RAW 시트 처리 후 업데이트 가능`;
+
+  // insight 텍스트 구좌별 업데이트
+  const insightEl = document.getElementById('lb-insight');
+  if (insightEl) {
+    const insights = {
+      all: '<strong>2번구좌 2월 CTR 급락</strong> — 1/26주 집계 9.24%에서 2/9주 1.92%로 급락. 1월 이벤트 종료 후 구조적 하락으로 분석됨. <strong>3월은 2~4% 수준 회복</strong> 중.',
+      '2': '<strong>2번구좌 1/26주 최고 16.79%</strong> — 이벤트 집중 효과로 피크. 2/9주 2.97%로 급락 후 3/9주 4.06%로 회복 중. <strong>전체 집계 대비 2배 이상 높은 CTR</strong> 유지.',
+      '3': '<strong>3번구좌 일관된 3~4%대 유지</strong> — 1/26주 8.73% 피크. 2월 이후 1~2%대로 하락. 방송 수 기준 2번 다음 규모. <strong>2월 이후 부진 지속</strong> 주의.',
+      '4': '<strong>4번구좌 11/3주 7.24% 피크</strong> — 이후 3~4%대 유지하다 2월 이후 1~2%대로 하락. 1/26주 8.48% 반등은 이벤트 효과.',
+      '5': '<strong>5번구좌 운영 불규칙</strong> — 방송 수 자체가 적어 null 구간 다수. 1/19주부터 꾸준히 운영(54~79건). 2월 이후 CTR 1% 미만으로 부진.',
+      '6': '<strong>6번구좌 소규모 운영</strong> — 주간 2~22건 수준. 1/26주 9.73% 이벤트 피크. 3월 들어 5~6%대 개선. <strong>방송 수 대비 CTR 안정적</strong>.',
+      '7': '<strong>7번구좌 비정기 운영</strong> — 주 2~12건 수준의 소규모. 데이터 연속성 낮음.',
+      '9': '<strong>9번구좌 1/19주 14.71% 최고치</strong> — 이후 방송 없음. 단기 이벤트성 운영 구좌.',
+    };
+    insightEl.innerHTML = insights[activeLBSlot] || insights.all;
+  }
+
+  // 듀얼 축 차트
+  const lbL = sliceLB('labels'), lbC = getLBData('ctr'), lbN = getLBData('count');
+  const ctx = document.getElementById('c-liveDual').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: lbL,
+      datasets: [
+        {
+          type: 'line',
+          label: '방송별 평균 CTR (%)',
+          data: lbC,
+          borderColor: '#22d3ee',
+          backgroundColor: 'rgba(34,211,238,.07)',
+          borderWidth: 2, pointRadius: 3, pointHoverRadius: 6,
+          pointBackgroundColor: '#22d3ee',
+          tension: 0.3, fill: true, yAxisID: 'y',
+        },
+        {
+          type: 'bar',
+          label: '방송 수 (건)',
+          data: lbN,
+          backgroundColor: 'rgba(167,139,250,.25)',
+          borderColor: 'rgba(167,139,250,.5)',
+          borderWidth: 1, borderRadius: 3, borderSkipped: false,
+          yAxisID: 'y2',
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { color: '#64748b', boxWidth: 10, boxHeight: 10, font: { size: 11 }, padding: 16 } },
+        tooltip: { ...TOOLTIP_OPTS, callbacks: { label: c => c.datasetIndex === 0 ? ` CTR: ${c.raw}%` : ` 방송수: ${c.raw}건` } },
+      },
+      scales: {
+        x: { grid: { color: GRID }, ticks: { maxRotation: 30, font: { size: 10 } } },
+        y: { position: 'left', grid: { color: GRID }, ticks: { callback: v => v + '%' }, title: { display: true, text: 'CTR (%)', color: '#22d3ee', font: { size: 10 } } },
+        y2: { position: 'right', grid: { display: false }, ticks: { color: '#a78bfa', font: { size: 10 } }, title: { display: true, text: '방송수', color: '#a78bfa', font: { size: 10 } } },
+      },
+    },
+  });
+
+  // 월별 분포 — 구좌 선택에 따라 동적 계산
+  const _lbMAvg = (mKey) => {
+    const [s, e] = MONTH_RANGES_LB[mKey] || [0, 0];
+    const src = activeLBSlot === 'all' ? LB.ctr : (LB.slots[activeLBSlot] ? LB.slots[activeLBSlot].ctr : LB.ctr);
+    const vals = src.slice(s, e + 1).filter(v => v !== null);
+    return vals.length ? +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : null;
+  };
+  const ctx2 = document.getElementById('c-liveMonth').getContext('2d');
+  new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: ['10월','11월','12월','1월','2월','3월'],
+      datasets: [{
+        label: `월 평균 CTR (${slotName})`,
+        data: ['10','11','12','1','2','3'].map(m => _lbMAvg(m)),
+        backgroundColor: ['rgba(100,116,139,.5)','rgba(52,211,153,.6)','rgba(96,165,250,.6)','rgba(251,191,36,.6)','rgba(251,113,133,.5)','rgba(167,139,250,.6)'],
+        borderRadius: 5, borderSkipped: false,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...TOOLTIP_OPTS, callbacks: { label: c => ` 평균 CTR: ${c.raw}%` } } },
+      scales: {
+        x: { grid: { color: 'transparent' } },
+        y: { grid: { color: GRID }, ticks: { callback: v => v + '%' } },
+      },
+    },
+  });
+
+  // 방송 수 추이
+  const ctx3 = document.getElementById('c-liveCount').getContext('2d');
+  new Chart(ctx3, {
+    type: 'line',
+    data: {
+      labels: lbL,
+      datasets: [lineDset(`주간 방송 수 (${slotName})`, lbN, '#a78bfa', true)],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { ...TOOLTIP_OPTS, callbacks: { label: c => ` ${c.raw}건` } } },
+      scales: {
+        x: { grid: { color: GRID }, ticks: { maxRotation: 30, font: { size: 10 } } },
+        y: { grid: { color: GRID }, ticks: { callback: v => v + '건' } },
+      },
+    },
+  });
+}
+
+// ════════════════════════════════════════════════
+//   TAB 4: 퍼널 / KPI
+// ════════════════════════════════════════════════
+function buildFunnel() {
+  // 퍼널 트렌드 + 목표 라인
+  const ctx = document.getElementById('c-funnelTrend').getContext('2d');
+  window.funnelChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: sliceW('labels'),
+      datasets: [
+        lineDset('시청전환 (%)', sliceW('viewConv'), '#60a5fa', false),
+        lineDset('구매전환 (%)', sliceW('buyConv'), '#fbbf24', false),
+        {
+          label: '시청전환 목표 (기간별)',
+          data: sliceW('viewConvTarget'),
+          borderColor: 'rgba(96,165,250,.4)',
+          borderWidth: 1.5, borderDash: [5, 4],
+          pointRadius: 0, fill: false, tension: 0,
+        },
+        {
+          label: '구매전환 목표 (기간별)',
+          data: sliceW('buyConvTarget'),
+          borderColor: 'rgba(251,191,36,.4)',
+          borderWidth: 1.5, borderDash: [5, 4],
+          pointRadius: 0, fill: false, tension: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false }, tooltip: { ...TOOLTIP_OPTS, callbacks: { label: c => ` ${c.dataset.label}: ${c.raw}%` } } },
+      scales: {
+        x: { grid: { color: GRID } },
+        y: { grid: { color: GRID }, ticks: { callback: v => v + '%' } },
+      },
+    },
+  });
+  buildLegend('leg-funnel', window.funnelChart);
+
+  // 프로모션 기여도
+  const ctx2 = document.getElementById('c-promoContrib').getContext('2d');
+  const pc = sliceW('promoContrib');
+  const targetLine = Array(pc.length).fill(34.88);
+  new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: sliceW('labels'),
+      datasets: [
+        {
+          type: 'line',
+          label: '목표 34.88%',
+          data: targetLine,
+          borderColor: '#fb7185',
+          borderWidth: 1.5, borderDash: [4, 3],
+          pointRadius: 0, fill: false, tension: 0,
+        },
+        {
+          type: 'bar',
+          label: '프로모션 기여도 (%)',
+          data: pc,
+          backgroundColor: pc.map(v => v == null ? 'rgba(100,116,139,.2)' : v >= 34.88 ? 'rgba(52,211,153,.6)' : 'rgba(251,113,133,.4)'),
+          borderRadius: 3, borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false }, tooltip: { ...TOOLTIP_OPTS, callbacks: { label: c => ` ${c.dataset.label}: ${c.raw != null ? c.raw + '%' : '-'}` } } },
+      scales: {
+        x: { grid: { color: GRID }, ticks: { font: { size: 10 }, maxRotation: 30 } },
+        y: { grid: { color: GRID }, ticks: { callback: v => v + '%' } },
+      },
+    },
+  });
+
+  // KPI 달성 현황 — 월별 주간평균 기반 (26년_주간지표 실제 데이터)
+  const kpiBox = document.getElementById('kpiAchievements');
+  const items = [
+    // 11월 (11/3~11/24, 4주)
+    { label: '톱배너 CTR (11월)',    target: 2.04,  actual: 3.90 },
+    { label: '시청전환 (11월)',      target: 40.04, actual: 40.26 },
+    { label: '구매전환 (11월)',      target: 8.21,  actual: 8.62 },
+    // 12월 (12/1~12/29, 5주)
+    { label: '톱배너 CTR (12월)',    target: 2.04,  actual: 3.95 },
+    { label: '시청전환 (12월)',      target: 40.04, actual: 38.65 },
+    { label: '구매전환 (12월)',      target: 8.21,  actual: 7.76 },
+    // 1월 (1/5~1/26, 4주)
+    { label: '톱배너 CTR (1월)',     target: 2.54,  actual: 2.23 },
+    { label: '홈ATF 배너 (1월)',     target: 2.54,  actual: 4.46 },
+    { label: '시청전환 (1월)',       target: 40.99, actual: 37.86 },
+    { label: '구매전환 (1월)',       target: 8.86,  actual: 7.85 },
+    // 2월 (2/2~2/23, 4주) — 26년_주간지표 월간 확정치
+    { label: '톱배너 CTR (2월)',     target: 2.60,  actual: 2.10 },
+    { label: '홈ATF 배너 (2월)',     target: 2.60,  actual: 6.85 },
+    { label: '시청전환 (2월)',       target: 41.60, actual: 35.92 },
+    { label: '구매전환 (2월)',       target: 8.99,  actual: 6.48 },
+    // 3월 진행중 (3/2~3/16, 3주)
+    { label: '톱배너 CTR (3월~)',    target: 2.60,  actual: 2.39 },
+    { label: '시청전환 (3월~)',      target: 41.60, actual: 39.39 },
+    { label: '구매전환 (3월~)',      target: 8.99,  actual: 7.70 },
+  ];
+  items.forEach(({ label, target, actual }) => {
+    const pct = Math.min(140, (actual / target * 100));
+    const over = pct >= 100;
+    const diff = (actual - target).toFixed(2);
+    kpiBox.innerHTML += `
+      <div class="kpi-row">
+        <div class="kpi-row-label">${label}</div>
+        <div class="kpi-row-target">${target}%</div>
+        <div class="kpi-row-actual">${actual}%</div>
+        <div class="kpi-row-diff ${over?'pos':'neg'}">${over?'+':''}${diff}%p</div>
+      </div>`;
+  });
+}
+
+// ════════════════════════════════════════════════
+//   MONTHLY FUNNEL SNAPSHOT DATA
+//   소스: 그립 내부 데이터 (GA / 주간지표 합산)
+//   null 항목은 원시 데이터 수집 후 기입 필요
+// ════════════════════════════════════════════════
+const MFUNNEL = {
+  // index 0 = 25년 12월 (1월 전월 비교 기준 — 드롭다운 미표시)
+  // index 1~3 = 26년 1~3월 (확정), index 4~6 = 26년 4~6월 (Q2 KR 목표 설정)
+  // 전환율은 buildMonthlySnapshot()에서 유입수 대비로 자동 계산
+  labels:    ['25년 12월', '26년 1월', '26년 2월', '26년 3월', '26년 4월', '26년 5월', '26년 6월'],
+  // 데이터 기준 메모 (null = 해당 월 마감 확정)
+  notes:     [null, null, null, '3/22 누적 기준', null, null, null],
+
+  // ── 월간 현황 KPI ─────────────────────────────
+  // 온사이트 전체 팔로우 (확정 실적)
+  followers:      [null, 3720,  2660,  2411,  null, null, null],
+  // 온사이트 ATF 유효시청자수 (top_live + lb2 + spc_live 합산)
+  onsiteEffView:  [null, 17183, 19708, 19042, null, null, null],
+  // 편성 CTR (추후 입력, 단위: %)
+  schedCTR:       [null, null,  null,  null,  null, null, null],  // ← 아래 자동 계산 블록이 덮어씀
+
+  // ── 월별 목표 (KPI 페이싱 + Q2 KR) ─────────────
+  // 각 월 = 다음 달 목표 × 0.94(팔로우·유효시청), × 0.985(CTR)
+  followers_target:     [null, 2580, 2745, 2920,  3106,  3293,  3490],
+  onsiteEffView_target: [null, 16155, 17186, 18283, 19450, 20617, 21854],
+  schedCTR_target:      [null, 2.56, 2.60,  2.64,  2.68,  2.72,  2.76],
+
+  // ── 데이터 수집 기준일 ─────────────────────────
+  dataDay:  [null, 31, 28, 22,   null, null, null],
+  monthDays:[null, 31, 28, 31,   30,   31,   30],
+
+  // ── 전체 ──────────────────────────────────────
+  inflow:      [null, 1540571, 1395769, 1093077, null, null, null],
+  viewCount:   [null, 583362,  501420,  432185,  null, null, null],
+  effView:     [null, 409840,  345128,  302464,  null, null, null],
+  buyCount:    [null, 118831,  90425,   87145,   null, null, null],
+
+  // ── 신규 ──────────────────────────────────────
+  inflow_new:    [null, 105968, 97372,  64841,  null, null, null],
+  viewCount_new: [null, 33832,  28248,  21616,  null, null, null],
+  effView_new:   [null, 14106,  10277,  9161,   null, null, null],
+  buyCount_new:  [null, 2802,   1740,   1702,   null, null, null],
+
+  // ── 기존 ──────────────────────────────────────
+  inflow_old:    [null, 1077731, 972377,  822019, null, null, null],
+  viewCount_old: [null, 520586,  448830,  392684, null, null, null],
+  effView_old:   [null, 386611,  326804,  286026, null, null, null],
+  buyCount_old:  [null, 116033,  88687,   85455,  null, null, null],
+};
+
+// ════════════════════════════════════════════════
+//   온사이트 구좌별 상세 실적
+//   index: 0=25년12월(미수집) / 1=26년1월 / 2=26년2월 / 3=26년3월
+// ════════════════════════════════════════════════
+const ONSITE_DETAIL = {
+  labels: ['25년 12월', '26년 1월', '26년 2월', '26년 3월'],
+
+  // ── 팔로우 ────────────────────────────────────
+  follower_total:   [null,  3720,  2660,  2411],
+  follower_avg:     [null,  0.91,  1.96,  4.57],
+
+  top_pre_follower: [null,  929,   582,   419 ],
+  top_pre_avg:      [null,  6.3,   6.1,   5.2 ],
+  top_pre_channel:  [null,  148,   96,    81  ],
+
+  top_evt_follower: [null,  2346,  1792,  1711],
+  top_evt_avg:      [null,  6.41,  3.17,  4.48],
+  top_evt_channel:  [null,  366,   566,   382 ],
+
+  spc_pre_follower: [null,  445,   286,   281 ],
+  spc_pre_avg:      [null,  0.12,  0.41,  4.32],
+  spc_pre_channel:  [null,  3568,  695,   65  ],
+
+  // ── 유효시청자 (구좌 합산: top_live + lb2 + spc_live) ────
+  effview_total:    [null,  17183, 19708, 19042],
+  effview_avg:      [null,  88,    77,    96   ],
+
+  top_live_eff:     [null,  3169,  3141,  3559],
+  top_live_avg:     [null,  144.05,120.81,142.36],
+  top_live_channel: [null,  22,    26,    25  ],
+
+  lb2_eff:          [null,  12403, 15281, 14973],
+  lb2_avg:          [null,  80.54, 87.82, 93.00],
+  lb2_channel:      [null,  154,   174,   161 ],
+
+  spc_live_eff:     [null,  724,   1286,  510 ],
+  spc_live_avg:     [null,  38,    23,    43  ],
+  spc_live_channel: [null,  19,    56,    12  ],
+
+  // ── 특수배너 하위 구좌 (A/B/C/D) ─────────────────────────────
+  spc_a_foll:       [null, 313, 176, 254],   // A: 팔로우
+  spc_b_foll:       [null,   0,  23,   0],   // B: 팔로우
+  spc_c_foll:       [null, 132,  87,  35],   // C: 팔로우
+  spc_c_eff:        [null, 272, 633, 243],   // C: 유효시청
+  spc_d_eff:        [null, 452, 653, 267],   // D: 유효시청
+
+  // ── 지면별 CTR / 노출량 / 클릭량 ────────────────
+  // index 0=25년12월, 1=26년1월, 2=26년2월, 3=26년3월
+  // CTR 단위: %  /  노출량·클릭량: 건수 (null = 미집계)
+  // index 0=25년12월, 1=26년1월, 2=26년2월, 3=26년3월
+  promo_ctr:        [null, 1.76,    1.94,    2.40],
+  promo_imp:        [null, 301007,  550169,  73352],
+  promo_click:      [null, 5309,    10696,   1758],
+
+  top_ctr:          [null, 2.08,    2.07,    2.34],
+  top_imp:          [null, 3368143, 1797445, 664822],
+  top_click:        [null, 70206,   37231,   15549],
+
+  lb2_ctr:          [null, 4.54,    4.55,    4.99],
+  lb2_imp:          [null, 628319,  746588,  279851],
+  lb2_click:        [null, 28532,   33945,   13959],
+
+  spc_ctr:          [null, null,    null,    null],
+  spc_imp:          [null, null,    null,    null],
+  spc_click:        [null, null,    null,    null],
+};
+
+// 편성 CTR 자동 계산: 전체 지면(프로모션탭+톱배너+라이브2번) 노출 합산 대비 클릭 합산
+(function(){
+  const D = ONSITE_DETAIL;
+  const len = Math.min(MFUNNEL.schedCTR.length, D.promo_click.length);
+  for(let i = 0; i < len; i++){
+    if(D.promo_click[i]==null && D.top_click[i]==null && D.lb2_click[i]==null) continue;
+    const totalClick = (D.promo_click[i]||0) + (D.top_click[i]||0) + (D.lb2_click[i]||0);
+    const totalImp   = (D.promo_imp[i]||0)   + (D.top_imp[i]||0)   + (D.lb2_imp[i]||0);
+    if(totalImp > 0) MFUNNEL.schedCTR[i] = Math.round(totalClick / totalImp * 10000) / 100;
+  }
+})();
+
+// ════════════════════════════════════════════════
+//   연간 KPI 트렌드 데이터 (실적 vs 목표)
+//   index 0=1월 … 11=12월  /  null=미입력
+// ════════════════════════════════════════════════
+const MONTHLY_PLAN = {
+  labels: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
+
+  // 온사이트 유효시청자수 (단위: 명) — top_live+lb2+spc_live 합산
+  effView_actual: [17183, 19708, 19042, null, null, null, null, null, null, null, null, null],
+  effView_target: [16155, 17186, 18283, 19450, 20617, 21854, null, null, null, null, null, null],
+
+  // 온사이트 팔로우수 (단위: 명)
+  followers_actual: [3720, 2660, 2411, null, null, null, null, null, null, null, null, null],
+  followers_target:  [2580, 2745, 2920, 3106, 3293, 3490, null, null, null, null, null, null],
+
+  // 편성 CTR (단위: %)
+  schedCTR_actual: [null, null, null, null, null, null, null, null, null, null, null, null],
+  schedCTR_target:  [2.56, 2.60, 2.64, 2.68, 2.72, 2.76, null, null, null, null, null, null],
+};
+
+// ════════════════════════════════════════════════
+//   FILTER — 월별 기간 필터
+// ════════════════════════════════════════════════
+
+const MONTH_RANGES_W = {
+  all: [0, 23],
+  '25': [0, 12],  // 25년 전체 (10월~12월)
+  '26': [13, 23], // 26년 전체 (1월~3월)
+  '10': [0, 3],   // 10/6 ~ 10/27  (4주)
+  '11': [4, 7],   // 11/3 ~ 11/24  (4주)
+  '12': [8, 12],  // 12/1 ~ 12/29  (5주)
+  '1':  [13, 16], // 1/5  ~ 1/26   (4주)
+  '2':  [17, 20], // 2/2  ~ 2/23   (4주)
+  '3':  [21, 23], // 3/2  ~ 3/16   (3주)
+};
+const MONTH_RANGES_LB = {
+  all: [0, 19],
+  '25': [0, 9],   // 25년 전체 (10/27~12/29)
+  '26': [10, 19], // 26년 전체 (1/5~3/9)
+  '10': [0, 0],   // 10/27
+  '11': [1, 4],   // 11/3 ~ 11/24
+  '12': [5, 9],   // 12/1 ~ 12/29
+  '1':  [10, 13], // 1/5  ~ 1/26
+  '2':  [14, 17], // 2/2  ~ 2/23
+  '3':  [18, 19], // 3/2  ~ 3/9
+};
+const FILTER_INFO = {
+  all: '24주 전체 · 25.10 ~ 26.03',
+  '25': '13주 · 25.10.06 ~ 25.12.29',
+  '26': '11주 · 26.01.05 ~ 26.03.16',
+  '10': '4주 · 25.10.06 ~ 25.10.27',
+  '11': '4주 · 25.11.03 ~ 25.11.24',
+  '12': '5주 · 25.12.01 ~ 25.12.29',
+  '1': '4주 · 26.01.05 ~ 26.01.26',
+  '2': '4주 · 26.02.02 ~ 26.02.23',
+  '3': '3주 · 26.03.02 ~ 26.03.16',
+};
+
+let activeFilter = 'all';
+let activeLBSlot = 'all';
+// 구좌별(or 전체) 라이브배너 데이터 반환 — 기간 필터 연동
+function getLBData(key) {
+  const [s, e] = MONTH_RANGES_LB[activeFilter] || [0, 19];
+  if (activeLBSlot === 'all') return LB[key].slice(s, e + 1);
+  const slot = LB.slots[activeLBSlot];
+  return slot ? slot[key].slice(s, e + 1) : LB[key].slice(s, e + 1);
+}
+
+// 구좌 선택 변경
+function setLBSlot(slot) {
+  activeLBSlot = slot;
+  const activeTabEl = document.querySelector('.tab-section.active');
+  if (activeTabEl && activeTabEl.id === 'tab-live') destroyAndRebuild('live');
+}
+
+function sliceW(key) {
+  const [s, e] = MONTH_RANGES_W[activeFilter] || [0, 23];
+  return W[key].slice(s, e + 1);
+}
+function sliceLB(key) {
+  const [s, e] = MONTH_RANGES_LB[activeFilter] || [0, 19];
+  return LB[key].slice(s, e + 1);
+}
+
+const CHART_IDS = {
+  overview: ['c-funnelBar', 'c-inflowDonut'],
+  banner:   ['c-topBannerDetail', 'c-wideBanner'],
+  live:     ['c-liveDual', 'c-liveMonth', 'c-liveCount'],
+  funnel:   ['c-funnelTrend', 'c-promoContrib'],
+};
+
+function destroyAndRebuild(tabName) {
+  (CHART_IDS[tabName] || []).forEach(id => Chart.getChart(id)?.destroy());
+  ['leg-funnel'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.innerHTML = '';
+  });
+  const hm = document.getElementById('bannerHeatmap'); if (hm) hm.innerHTML = '';
+  const kpi = document.getElementById('kpiAchievements'); if (kpi) kpi.innerHTML = '';
+  if (tabName === 'overview') buildOverview();
+  else if (tabName === 'banner')  buildBanner();
+  else if (tabName === 'live')    buildLive();
+  else if (tabName === 'funnel')  buildFunnel();
+}
+
+// ════════════════════════════════════════════════
+//   BANNER SUMMARY TABLE
+// ════════════════════════════════════════════════
+function buildBannerSummaryTable() {
+  const tbody = document.getElementById('bsm-tbody');
+  const lblEl = document.getElementById('bsm-period-label');
+  if (!tbody) return;
+  if (lblEl) lblEl.textContent = FILTER_INFO[activeFilter] || '';
+
+  const avg  = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+  const maxV = arr => arr.length ? Math.max(...arr) : 0;
+  const sumV = arr => arr.reduce((a, b) => a + (b || 0), 0);
+
+  // W-based data (1번구좌 톱배너)
+  const topArr  = sliceW('topBanner').filter(v => v != null);
+  const tgtArr  = sliceW('topBannerTarget').filter(v => v != null);
+  const viewArr = sliceW('viewConv').filter(v => v != null);
+  const buyArr  = sliceW('buyConv').filter(v => v != null);
+
+  // LB slot data for the active filter range
+  const [lbS, lbE] = MONTH_RANGES_LB[activeFilter] || [0, 19];
+  function getSlot(id) {
+    const s = LB.slots[id];
+    if (!s) return { ctr: [], cnt: 0 };
+    const ctr = s.ctr.slice(lbS, lbE + 1).filter(v => v != null);
+    const cnt = sumV(s.count.slice(lbS, lbE + 1));
+    return { ctr, cnt };
+  }
+  const s2 = getSlot('2'), s3 = getSlot('3'), s4 = getSlot('4');
+
+  const viewAvg = avg(viewArr);
+  const buyAvg  = avg(buyArr);
+  const tgtAvg  = avg(tgtArr);
+
+  const rows = [
+    {
+      name: '배너 1', sub: '1번구좌 · 톱배너 (정적)',
+      color: '#a78bfa',
+      ctrArr: topArr,
+      exposure: topArr.length + '주', expLabel: '측정 주수',
+      target: tgtAvg,
+      convLabel: '구매전환율', convVal: buyAvg,
+    },
+    {
+      name: '배너 2', sub: '2번구좌 · 라이브배너 (메인)',
+      color: '#34d399',
+      ctrArr: s2.ctr,
+      exposure: s2.cnt.toLocaleString() + '건', expLabel: '방송 건수',
+      target: tgtAvg,
+      convLabel: '시청전환율', convVal: viewAvg,
+    },
+    {
+      name: '배너 3', sub: '3번구좌 · 라이브배너',
+      color: '#60a5fa',
+      ctrArr: s3.ctr,
+      exposure: s3.cnt.toLocaleString() + '건', expLabel: '방송 건수',
+      target: tgtAvg,
+      convLabel: '시청전환율', convVal: viewAvg,
+    },
+    {
+      name: '배너 4', sub: '4번구좌 · 라이브배너',
+      color: '#22d3ee',
+      ctrArr: s4.ctr,
+      exposure: s4.cnt.toLocaleString() + '건', expLabel: '방송 건수',
+      target: tgtAvg,
+      convLabel: '시청전환율', convVal: viewAvg,
+    },
+  ];
+
+  const globalMax = Math.max(...rows.map(r => maxV(r.ctrArr)), 1);
+
+  tbody.innerHTML = rows.map(r => {
+    if (!r.ctrArr.length) {
+      return `<tr>
+        <td>
+          <div class="bsm-name"><span class="bsm-dot" style="background:${r.color}"></span>${r.name}</div>
+          <div class="bsm-sub">${r.sub}</div>
+        </td>
+        <td colspan="6" style="color:var(--text-3);font-size:16px">해당 기간 데이터 없음</td>
+      </tr>`;
+    }
+    const ctrAvg  = avg(r.ctrArr);
+    const ctrMax  = maxV(r.ctrArr);
+    const barW    = (ctrAvg / globalMax * 100).toFixed(1);
+    const achieved = r.target > 0 ? ctrAvg / r.target * 100 : null;
+    const achTag  = achieved !== null
+      ? `<span class="tag ${achieved >= 100 ? 'tag-g' : 'tag-r'}">${achieved >= 100 ? '▲' : '▼'} ${achieved.toFixed(0)}%</span>`
+      : '<span style="color:var(--text-3)">–</span>';
+    const tgtTxt  = r.target > 0 ? r.target.toFixed(2) + '%' : '–';
+    const convTxt = r.convVal > 0 ? r.convVal.toFixed(1) + '%' : '–';
+
+    return `<tr>
+      <td>
+        <div class="bsm-name"><span class="bsm-dot" style="background:${r.color}"></span>${r.name}</div>
+        <div class="bsm-sub">${r.sub}</div>
+      </td>
+      <td>
+        <span class="num">${r.exposure}</span>
+        <div style="font-size:15px;color:var(--text-3);margin-top:2px">${r.expLabel}</div>
+      </td>
+      <td>
+        <span class="bsm-val" style="color:${r.color}">${ctrAvg.toFixed(2)}%</span>
+        <div class="bsm-bar"><div class="bsm-bar-fill" style="width:${barW}%;background:${r.color}"></div></div>
+      </td>
+      <td class="num">${ctrMax.toFixed(2)}%</td>
+      <td style="color:var(--text-3);font-size:17px">${tgtTxt}</td>
+      <td>${achTag}</td>
+      <td>
+        <span style="font-size:15px;color:var(--text-3)">${r.convLabel}</span><br>
+        <span class="num" style="font-size:18px">${convTxt}</span>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function setMonthFilter(month, btn) {
+  activeFilter = month;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('filter-info').textContent = FILTER_INFO[month] || '';
+  buildBannerSummaryTable();
+  const activeTabEl = document.querySelector('.tab-section.active');
+  if (activeTabEl) {
+    const tab = activeTabEl.id.replace('tab-', '');
+    if (tab !== 'ai') destroyAndRebuild(tab);
+  }
+}
+
+// ════════════════════════════════════════════════
+//   TAB SWITCHING
+// ════════════════════════════════════════════════
+const tabBuilt = { overview: false, banner: false, live: false, funnel: false, ai: false, feed: false };
+
+document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+    if (!tabBuilt[tab]) {
+      tabBuilt[tab] = true;
+      if (tab === 'banner')  buildBanner();
+      if (tab === 'live')    buildLive();
+      if (tab === 'funnel')  buildFunnel();
+      if (tab === 'cheat')   buildCheat();
+      if (tab === 'feed')    buildFeed();
+    }
+  });
+});
+
+// ════════════════════════════════════════════════════════════════
+//   운영 치트키 탭 빌더
+// ════════════════════════════════════════════════════════════════
+function buildCheat() {
+  const D = ONSITE_DETAIL;
+  const fR = v => v != null ? v.toFixed(2) + '%' : '—';
+  const fN = (v, u) => v != null ? Number(v).toLocaleString() + (u ? u : '') : '—';
+
+  // 1~3월 누계 CTR (클릭합산/노출합산)
+  const cumCtr = (ck, mk) => {
+    let tc = 0, ti = 0;
+    for (let i = 1; i <= 3; i++) {
+      if (D[ck][i] != null) { tc += D[ck][i]; ti += D[mk][i]; }
+    }
+    return ti > 0 ? Math.round(tc / ti * 10000) / 100 : null;
+  };
+  const cumSum = (key) => {
+    let s = 0;
+    for (let i = 1; i <= 3; i++) s += (D[key][i] || 0);
+    return s;
+  };
+
+  const lb2CumCtr   = cumCtr('lb2_click', 'lb2_imp');
+  const topCumCtr   = cumCtr('top_click',  'top_imp');
+  const promoCumCtr = cumCtr('promo_click','promo_imp');
+  const lb2CumClick = cumSum('lb2_click');
+  const lb2CumImp   = cumSum('lb2_imp');
+  const spcAFoll    = cumSum('spc_a_foll');
+  const spcCFoll    = cumSum('spc_c_foll');
+  const spcCEff     = cumSum('spc_c_eff');
+  const spcDEff     = cumSum('spc_d_eff');
+
+  // ── 헬퍼 ──────────────────────────────────────────────────────
+  const mRow = (label, val, color = 'var(--text-1)') => `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+      <span style="font-size:12px;color:var(--text-3)">${label}</span>
+      <span style="font-size:14px;font-weight:700;color:${color}">${val}</span>
+    </div>`;
+
+  const barRow = (label, pct, color, note) => `
+    <div style="margin-bottom:11px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:12px;color:var(--text-2)">${label}</span>
+        <span style="font-size:11px;font-weight:700;color:${color}">${note}</span>
+      </div>
+      <div style="background:rgba(255,255,255,.07);border-radius:4px;height:6px">
+        <div style="width:${pct}%;height:100%;border-radius:4px;background:${color}"></div>
+      </div>
+    </div>`;
+
+  const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+
+  const monthDot = (val, label) => {
+    const on = val > 0;
+    return `<div style="text-align:center">
+      <div style="width:36px;height:36px;border-radius:50%;background:${on ? 'var(--g-bg)' : 'var(--r-bg)'};border:1px solid ${on ? 'var(--g)' : 'var(--r)'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:${on ? 'var(--g)' : 'var(--r)'};margin:0 auto 4px">${on ? val : '0'}</div>
+      <div style="font-size:10px;color:var(--text-3)">${label}</div>
+    </div>`;
+  };
+
+  // ── SECTION 1: 필승 구좌 ──────────────────────────────────────
+  const wCard = (color, title, starN, badge, metricsHtml, action) => `
+    <div class="card fade" style="padding:0;overflow:hidden;border-top:3px solid ${color}">
+      <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:14px;font-weight:700;color:var(--text-1)">${title}</span>
+          <span style="font-size:11px;padding:2px 9px;border-radius:20px;background:${color}22;color:${color};font-weight:700">${badge}</span>
+        </div>
+        <div style="font-size:16px;letter-spacing:2px;color:${color}">${stars(starN)}</div>
+      </div>
+      <div style="padding:13px 16px 10px">${metricsHtml}</div>
+      <div style="padding:9px 16px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-2);line-height:1.6">
+        <span style="color:${color};font-weight:700;margin-right:5px">▶ 운영 액션</span>${action}
+      </div>
+    </div>`;
+
+  const sec1 = `
+    <div class="sec-label-lg">🏆 필승 구좌<span class="slg-sub">1~3월 누계 성과 기반 · 소재·노출 운영 우선순위</span></div>
+    <div class="g4" style="margin-top:16px">
+      ${wCard('var(--b)', '라이브 2번 배너', 5, 'CTR 전 지면 최고',
+        mRow('누계 평균 CTR', fR(lb2CumCtr), 'var(--b)') +
+        mRow('누계 클릭', fN(lb2CumClick, '건')) +
+        mRow('누계 노출', fN(lb2CumImp)) +
+        mRow('월별 CTR 추이', '4.54 → 4.55 → 4.99%', 'var(--g)'),
+        '소재 현행 유지. 노출 볼륨 확대 시 클릭 비례 증가 — 볼륨이 유일한 성장 레버.'
+      )}
+      ${wCard('var(--y)', '특수배너 A', 4, '팔로우 1위',
+        mRow('누계 팔로우', fN(spcAFoll, '명'), 'var(--y)') +
+        mRow('월별 추이', '313 → 176 → 254명') +
+        mRow('3월 반등', '+44% (전월比)', 'var(--g)'),
+        '3월 반등 확인. 소재 유지하되 팔로우 CTA 문구 A/B 테스트 권고.'
+      )}
+      ${wCard('var(--g)', '특수배너 C', 4, '팔로우+시청',
+        mRow('누계 팔로우', fN(spcCFoll, '명')) +
+        mRow('누계 유효시청', fN(spcCEff, '명'), 'var(--g)') +
+        mRow('특이사항', '유일한 이중 성과 구좌', 'var(--v)'),
+        '팔로우 CTA 추가 삽입 시 두 지표 동시 개선 기대. 소재 교체 신중하게.'
+      )}
+      ${wCard('var(--c)', '특수배너 D', 3, '시청 성장',
+        mRow('누계 유효시청', fN(spcDEff, '명'), 'var(--c)') +
+        mRow('월별 추이', '452 → 653 → 267명') +
+        mRow('팔로우', '미집계'),
+        '팔로우 데이터 누락 확인 필요. 시청 유입은 꾸준 — 소재에 팔로우 유도 요소 삽입.'
+      )}
+    </div>`;
+
+  // ── SECTION 2: 디자인 프리패스 ────────────────────────────────
+  const dCard = (color, title, cumCtr, barsHtml, rec, avoid) => `
+    <div class="card fade" style="padding:0;overflow:hidden;border-top:3px solid ${color}">
+      <div style="padding:13px 15px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:14px;font-weight:700;color:var(--text-1)">${title}</span>
+        <span style="font-size:12px;color:${color};font-weight:700">누계 CTR ${fR(cumCtr)}</span>
+      </div>
+      <div style="padding:14px 15px 10px">
+        <div style="font-size:10px;font-weight:700;color:var(--text-3);letter-spacing:.8px;margin-bottom:12px">소재 유형별 효율 가이드</div>
+        ${barsHtml}
+      </div>
+      <div style="padding:10px 15px 12px;background:rgba(255,255,255,.02);border-top:1px solid var(--border)">
+        <div style="font-size:12px;margin-bottom:5px">
+          <span style="color:var(--g);font-weight:700">✓ 권고 </span>
+          <span style="color:var(--text-2)">${rec}</span>
+        </div>
+        <div style="font-size:12px">
+          <span style="color:var(--r);font-weight:700">✗ 지양 </span>
+          <span style="color:var(--text-2)">${avoid}</span>
+        </div>
+      </div>
+    </div>`;
+
+  const sec2 = `
+    <div class="sec-label-lg" style="margin-top:40px">🎨 디자인 프리패스<span class="slg-sub">이 패턴 안에서 제작하면 CTR 재검토 없이 집행 가능</span></div>
+    <div class="g3" style="margin-top:16px">
+      ${dCard('var(--b)', '라이브 2번 배너', lb2CumCtr,
+        barRow('인물 클로즈업 + 단순 1줄 텍스트', 90, 'var(--b)', '최고 효율 ★★★★★') +
+        barRow('혜택 문구 단독', 62, 'var(--c)', '보통 ★★★☆☆') +
+        barRow('복합 그래픽 / 다중 레이어', 22, 'var(--r)', '비효율 ★☆☆☆☆'),
+        '인물 클로즈업 + 여백 넉넉 + 1줄 텍스트. CTR 4%대 유지 핵심 패턴.',
+        '복잡한 레이아웃, 정보 과다 소재. CTR 즉시 하락 — 교체 전 반드시 검토.'
+      )}
+      ${dCard('var(--g)', '톱배너 (1번)', topCumCtr,
+        barRow('심플 텍스트 + 혜택 수치 전면', 72, 'var(--g)', '안정 ★★★★☆') +
+        barRow('인물 중심 이미지', 52, 'var(--y)', '보통 ★★★☆☆') +
+        barRow('브랜드 로고 / 감성 이미지', 28, 'var(--r)', '비효율 ★★☆☆☆'),
+        '노출 최대 지면 — 직관적 혜택 1개 메시지 원칙. 가독성 최우선.',
+        '정보 과다, 작은 폰트. 대규모 노출에도 CTR 2%대 고착 원인으로 추정.'
+      )}
+      ${dCard('var(--v)', '프로모션탭', promoCumCtr,
+        barRow('혜택 강조 문구 (A슬롯 집중)', 78, 'var(--v)', '주력 ★★★★☆') +
+        barRow('할인율·금액 수치 전면 노출', 65, 'var(--b)', '효과 ★★★★☆') +
+        barRow('B슬롯 전체', 0, 'var(--r)', '3개월 실적 0'),
+        'A슬롯 단일 집중. 할인율·가격 수치를 소재 전면에 배치.',
+        'B슬롯 재개 시 소재 검증 없이 집행 금지. 리소스 낭비 직결.'
+      )}
+    </div>`;
+
+  // ── SECTION 3: 배너 유입 체류율 ──────────────────────────────
+  const sec3 = `
+    <div class="sec-label-lg" style="margin-top:40px">📊 배너 유입 체류율<span class="slg-sub">상품 정보 기입 여부가 시청 전환율에 직결됩니다</span></div>
+    <div class="card fade" style="padding:0;overflow:hidden;margin-top:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr">
+        <div style="padding:22px 24px;border-right:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);letter-spacing:.8px;margin-bottom:18px">시나리오 비교</div>
+          <div style="margin-bottom:22px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <span style="font-size:18px">✅</span>
+              <span style="font-size:13px;font-weight:700;color:var(--g)">상품정보 기입 완료</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">배너 유입 후 유효시청 유지율</div>
+            <div style="background:rgba(255,255,255,.07);border-radius:4px;height:10px;margin-bottom:5px">
+              <div style="width:82%;height:100%;border-radius:4px;background:var(--g)"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3)">
+              <span>체류 3분 이상 전환</span>
+              <span style="color:var(--g);font-weight:700">82%</span>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <span style="font-size:18px">❌</span>
+              <span style="font-size:13px;font-weight:700;color:var(--r)">상품정보 미기입</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">배너 유입 후 유효시청 유지율</div>
+            <div style="background:rgba(255,255,255,.07);border-radius:4px;height:10px;margin-bottom:5px">
+              <div style="width:20%;height:100%;border-radius:4px;background:var(--r)"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3)">
+              <span>1분 내 이탈</span>
+              <span style="color:var(--r);font-weight:700">80%</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+          <div style="padding:15px;border-radius:10px;background:var(--r-bg);border:1px solid rgba(251,113,133,.2)">
+            <div style="font-size:12px;font-weight:700;color:var(--r);margin-bottom:7px">⚠ 정보 미기입 시 발생하는 일</div>
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7">배너 유입 유저의 <strong style="color:var(--r)">80%</strong>가 1분 내 이탈.<br>유효시청자 수 집계에서 제외되어<br><strong style="color:var(--r)">KPI 달성률이 즉시 하락</strong>합니다.</div>
+          </div>
+          <div style="padding:15px;border-radius:10px;background:var(--g-bg);border:1px solid rgba(52,211,153,.2)">
+            <div style="font-size:12px;font-weight:700;color:var(--g);margin-bottom:7px">▶ MD 운영 액션</div>
+            <div style="font-size:13px;color:var(--text-2);line-height:1.7">라이브 시작 <strong style="color:var(--g)">30분 전</strong>까지<br>배너 연결 상품 정보 기입 완료.<br><strong style="color:var(--text-1)">제목 · 가격 · 대표 이미지</strong> 3항목 필수.</div>
+          </div>
+          <div style="padding:12px 15px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--text-3);line-height:1.6">📊 <strong style="color:var(--b)">데이터 연계 안내</strong><br>방송별 체류시간 실데이터 확보 시 이 섹션은 실수치로 자동 전환됩니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('cheat-wrap').innerHTML = sec1 + sec2 + sec3 + '<div class="gap-lg"></div>';
+}
+
+function filterBannerTrend(btn, mode) {
+  document.querySelectorAll('.chips .chip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  if (!window.bannerTrendChart) return;
+  const chart = window.bannerTrendChart;
+  chart.data.datasets.forEach((ds, i) => {
+    if (mode === 'all') ds.hidden = false;
+    else if (mode === 'top')  ds.hidden = i !== 0;
+    else if (mode === 'live') ds.hidden = !(i === 1 || i === 2);
+  });
+  chart.update();
+}
+
+// ════════════════════════════════════════════════
+//   AI 분석 섹션
+// ════════════════════════════════════════════════
+
+
+
+// ════════════════════════════════════════════════
+//   INSIGHT FEED
+// ════════════════════════════════════════════════
+
+function setFeedView(view, btn) {
+  document.querySelectorAll('.feed-view-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const wc = document.getElementById('weekly-container');
+  const fc = document.getElementById('feed-container');
+  if (wc) wc.style.display = view === 'weekly' ? '' : 'none';
+  if (fc) fc.style.display = view === 'daily'   ? '' : 'none';
+}
+
+function parseMrkdwn(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*\n]+?)\*/g, '<strong>$1</strong>')
+    .replace(/_([^_\n]+?)_/g, '<em>$1</em>')
+    .replace(/`([^`]+?)`/g, '<code style="background:var(--surface-3);padding:1px 5px;border-radius:4px;font-size:16.5px">$1</code>')
+    .replace(/&gt;(.+)/gm, '<blockquote style="border-left:3px solid var(--border-hi);padding-left:10px;color:var(--text-2);margin:4px 0">$1</blockquote>')
+    .replace(/•/g, '·')
+    .replace(/\n/g, '<br>');
+}
+
+function buildWeeklyReport() {
+  const container = document.getElementById('weekly-container');
+  if (!container) return;
+  if (!WEEKLY_INSIGHTS || WEEKLY_INSIGHTS.length === 0) {
+    container.innerHTML = '<div class="feed-empty">위클리 리포트 데이터가 없습니다.</div>';
+    return;
+  }
+
+  const DOT = { done: 'var(--g)', issue: 'var(--r)', test: 'var(--b)', info: 'var(--y)' };
+  const TAG  = { done: 'tag-done', issue: 'tag-issue', test: 'tag-test', info: 'tag-info' };
+
+  const html = WEEKLY_INSIGHTS.map(w => `
+    <div class="weekly-hero">
+      <div class="weekly-hero-label">위클리 인사이트 리포트</div>
+      <div class="weekly-hero-title">${w.week}</div>
+      <div class="weekly-hero-range">${w.range}</div>
+    </div>
+
+    <div class="weekly-stats-row">
+      ${w.stats.map(s => `
+        <div class="weekly-stat">
+          <div class="weekly-stat-label">${s.label}</div>
+          <div class="weekly-stat-value" style="color:${s.color}">${s.value}</div>
+          <div class="weekly-stat-sub">${s.sub}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="weekly-section">
+      <div class="weekly-section-head">
+        <span style="font-size:20px">📌</span>
+        <span class="weekly-section-title">주요 하이라이트</span>
+        <span class="weekly-section-count">${w.highlights.length}건</span>
+      </div>
+      ${w.highlights.map(h => `
+        <div class="highlight-item">
+          <div class="hi-dot" style="background:${DOT[h.type]||'var(--text-3)'}"></div>
+          <div class="hi-content">
+            <div class="hi-title">${h.title}</div>
+            <div class="hi-desc">${h.desc}</div>
+            <div class="hi-meta">
+              <span class="hi-date">${h.date}</span>
+              ${h.tags.map(t => `<span class="hi-tag ${TAG[h.type]||'tag-info'}">${t}</span>`).join('')}
+            </div>
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <div class="weekly-section">
+      <div class="weekly-section-head">
+        <span style="font-size:20px">📅</span>
+        <span class="weekly-section-title">일별 타임라인</span>
+      </div>
+      ${w.daily.map(d => `
+        <div class="timeline-day">
+          <div class="tl-date-col">
+            <span class="tl-date">${d.date}</span>
+            <span class="tl-day-name">${d.day}요일</span>
+          </div>
+          <div class="tl-body">
+            ${d.items.length
+              ? d.items.map(i => `<div class="tl-item">${i}</div>`).join('')
+              : '<div class="tl-empty">특이사항 없음</div>'}
+          </div>
+        </div>`).join('')}
+    </div>
+  `).join('');
+
+  container.innerHTML = html;
+}
+
+function buildFeed() {
+  buildWeeklyReport();
+
+  const container = document.getElementById('feed-container');
+  if (!container) return;
+
+  if (!SLACK_FEED || SLACK_FEED.length === 0) {
+    container.innerHTML = '<div class="feed-empty">아직 수집된 데일리 피드가 없습니다.<br>매일 18:00에 Slack #team-온사이트전략팀에서 자동으로 가져옵니다.</div>';
+    return;
+  }
+
+  const updatedEl = document.getElementById('feed-updated-at');
+  if (updatedEl && SLACK_FEED[0]?.fetchedAt) {
+    updatedEl.textContent = SLACK_FEED[0].fetchedAt;
+  }
+
+  const html = SLACK_FEED.map(item => {
+    const isWeekly = /위클리|주간|weekly/i.test(item.text);
+    const typeBadge = isWeekly
+      ? '<span class="feed-type-weekly">위클리</span>'
+      : '<span class="feed-type-daily">데일리</span>';
+    const bodyHtml = (item.sections || [item.text]).map(sec =>
+      `<div class="feed-section"><div class="feed-text">${parseMrkdwn(sec)}</div></div>`
+    ).join('');
+    return `
+    <div class="feed-card">
+      <div class="feed-card-head">
+        <span class="feed-date-badge">${item.date || ''}</span>
+        ${typeBadge}
+        <span class="feed-ts">${item.time || ''}</span>
+      </div>
+      <div class="feed-card-body">${bodyHtml}</div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = html;
+}
+
+// ── MONTH PACING (section widget) — called from buildMonthlySnapshot ──
+function updateSectionPacing(monNum, totalDays, displayDay, pct) {
+  var labelEl = document.getElementById('sp-label-text');
+  var barEl   = document.getElementById('sp-bar-inner');
+  var pctEl   = document.getElementById('sp-pct-text');
+  var daysEl  = document.getElementById('sp-days-text');
+  var wrapEl  = document.getElementById('section-pacing');
+  if (!wrapEl) return;
+
+  var colour = pct >= 90 ? 'var(--r)' : pct >= 70 ? 'var(--y)' : 'var(--b)';
+
+  labelEl.textContent    = monNum + '월 일자 진행률';
+  barEl.style.width      = pct + '%';
+  barEl.style.background = colour;
+  pctEl.style.color      = colour;
+  pctEl.textContent      = pct + '%';
+  daysEl.textContent     = displayDay + ' / ' + totalDays + '일';
+  wrapEl.style.display   = 'flex';
+
+}
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  tabBuilt.overview = true;
+  buildOverview();
+});
+</script>
+</body>
+</html>
